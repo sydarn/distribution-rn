@@ -71,8 +71,8 @@ diff -rupN linux.orig/arch/arm64/boot/dts/rockchip/rk3566-powkiddy-rk2023.dtsi l
 -		compatible = "gpio-keys";
 -		pinctrl-0 = <&btn_pins_ctrl>;
 -		pinctrl-names = "default";
-+	joypad: singleadc-joypad {
-+		compatible = "singleadc-joypad";
++	joypad: rocknix-joypad {
++		compatible = "rocknix-joypad";
 +		hw_info = <0x01>;
  
 -		button-a {
