@@ -58,11 +58,11 @@
   # OpenGL(X) implementation to use (mesa / no)
     OPENGL="mesa"
 
-  # For maximum cross compatbility
-    PREFER_GLES="yes"
-
   # OpenGL-ES implementation to use (mesa / no)
     OPENGLES="mesa"
+
+  # For maximum cross compatbility
+    PREFER_GLES="yes"
 
   # Displayserver to use (weston / x11 / no)
     DISPLAYSERVER="wl"
