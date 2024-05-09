@@ -25,7 +25,7 @@ case ${DEVICE} in
     PKG_GIT_CLONE_BRANCH="rk-5.10-rkr6"
   ;;
   *)
-    PKG_VERSION="6.9-rc3"
+    PKG_VERSION="6.9-rc7"
     PKG_URL="https://git.kernel.org/torvalds/t/linux-${PKG_VERSION}.tar.gz"
     PKG_PATCH_DIRS+=" mainline"
   ;;
@@ -242,6 +242,14 @@ makeinstall_target() {
         cp -v ${dtb} ${INSTALL}/usr/share/bootloader
       fi
     done
+
+	# copy overlays if they exist	
+	if [ -d arch/${TARGET_KERNEL_ARCH}/boot/dts/*/overlays ]; then
+	  mkdir -p ${INSTALL}/usr/share/bootloader/overlays
+	  for dtb in arch/${TARGET_KERNEL_ARCH}/boot/dts/*/overlays/*.dtb; do
+		cp -v ${dtb} ${INSTALL}/usr/share/bootloader/overlays
+	  done
+	fi
 
     if [ "${PROJECT}" = "Rockchip" ]; then
       . ${PROJECT_DIR}/${PROJECT}/devices/${DEVICE}/options
