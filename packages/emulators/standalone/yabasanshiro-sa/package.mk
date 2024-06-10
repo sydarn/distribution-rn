@@ -17,8 +17,8 @@ PKG_PATCH_DIRS+="${DEVICE}"
 
 case ${TARGET_ARCH} in
   aarch64|arm)
-    PKG_VERSION="c7618d2ecbf77b1e8188fa8af4fa1cfb34833a72"
-    PKG_GIT_CLONE_BRANCH="pi4-1-9-0"
+    PKG_VERSION="350be2ea6cc276153ecd901382805f2d80924a4f"
+    PKG_GIT_CLONE_BRANCH="master"
   ;;
   *)
     PKG_VERSION="82cb29171ebe61cf0129682794af5ceb5acaa0f2"
