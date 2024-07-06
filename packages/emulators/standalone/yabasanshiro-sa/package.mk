@@ -53,6 +53,9 @@ pre_make_target() {
 
 pre_configure_target() {
   PKG_CMAKE_OPTS_TARGET="${PKG_BUILD}/yabause "
+  export CFLAGS="${CFLAGS} -flto -fipa-pta -fivopts -ftree-vectorize"
+  export CXXFLAGS="${CXXFLAGS} -flto -fipa-pta -fivopts -ftree-vectorize"
+  export LDFLAGS="${LDFLAGS} -flto -fipa-pta -fivopts -ftree-vectorize"
 
   if [ ! "${OPENGL}" = "no" ]; then
     PKG_CMAKE_OPTS_TARGET+=" -DUSE_EGL=ON -DUSE_OPENGL=ON"
