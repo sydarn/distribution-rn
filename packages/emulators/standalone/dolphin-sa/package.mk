@@ -65,7 +65,10 @@ pre_configure_target() {
                          -DENABLE_CLI_TOOL=OFF"
   sed -i 's~#include <cstdlib>~#include <cstdlib>\n#include <cstdint>~g' ${PKG_BUILD}/Externals/VulkanMemoryAllocator/include/vk_mem_alloc.h
   sed -i 's~#include <cstdint>~#include <cstdint>\n#include <string>~g' ${PKG_BUILD}/Externals/VulkanMemoryAllocator/include/vk_mem_alloc.h
-
+export EXTRA_FLAGS="-flto=auto -fipa-pta"
+export CFLAGS="${TARGET_CFLAGS} ${EXTRA_FLAGS}"
+export CXXFLAGS="${TARGET_CXXFLAGS} ${EXTRA_FLAGS}"
+export LDFLAGS="${TARGET_LDFLAGS} -Ofast ${EXTRA_FLAGS}"
 }
 
 makeinstall_target() {

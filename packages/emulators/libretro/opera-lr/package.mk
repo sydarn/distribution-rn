@@ -29,6 +29,12 @@ PKG_TOOLCHAIN="make"
 
 
 make_target() {
+  PKG_CMAKE_OPTS_TARGET="${PKG_BUILD}/yabause "
+  export CFLAGS="${CFLAGS} -flto -fipa-pta -fivopts -ftree-vectorize"
+  export CXXFLAGS="${CXXFLAGS} -flto -fipa-pta -fivopts -ftree-vectorize"
+  export LDFLAGS="${LDFLAGS} -O3 -flto -fipa-pta -fivopts -ftree-vectorize"
+  # Makefile sets OPT to -02 flag if not set, set it to empty string to use our flags
+  export OPT=""
   make CC=${CC} CXX=${CXX} AR=${AR}
 }
 

@@ -14,10 +14,10 @@ if [ "${DEVICE}" = "S922X" ]; then
 fi
 
 pre_configure_target() {
-
-export CFLAGS="${CFLAGS} -flto -fipa-pta"
-export CXXFLAGS="${CXXFLAGS} -flto -fipa-pta"
-export LDFLAGS="${LDFLAGS} -flto -fipa-pta"
+EXTRA_FLAGS="-flto -fipa-pta -fivopts -ftree-vectorize --param max-gcse-memory=300000"
+export CFLAGS="${CFLAGS} ${EXTRA_FLAGS}"
+export CXXFLAGS="${CXXFLAGS} ${EXTRA_FLAGS}"
+export LDFLAGS="${LDFLAGS} ${EXTRA_FLAGS}"
 
 # unsupported modules
 DISABLED_MODULES+=" --disable-apple2 \

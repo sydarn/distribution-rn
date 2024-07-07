@@ -12,7 +12,7 @@ PKG_DEPENDS_TARGET="toolchain SDL2 boost openal-soft zlib"
 PKG_LONGDESC="Yabause is a Sega Saturn emulator and took over as Yaba Sanshiro"
 PKG_TOOLCHAIN="cmake-make"
 GET_HANDLER_SUPPORT="git"
-PKG_BUILD_FLAGS="+speed"
+#PKG_BUILD_FLAGS="+speed"
 PKG_PATCH_DIRS+="${DEVICE}"
 
 case ${TARGET_ARCH} in
@@ -53,10 +53,13 @@ pre_make_target() {
 
 pre_configure_target() {
   PKG_CMAKE_OPTS_TARGET="${PKG_BUILD}/yabause "
-  export CFLAGS="${CFLAGS} -flto -fipa-pta -fivopts -ftree-vectorize"
-  export CXXFLAGS="${CXXFLAGS} -flto -fipa-pta -fivopts -ftree-vectorize"
-  export LDFLAGS="${LDFLAGS} -flto -fipa-pta -fivopts -ftree-vectorize"
-
+  # The flags are not applied on compile units, the cmake setup seems funky.
+  # lto doesn't seem to happen for all targets, but there are performace benefits
+  # from the other flags.
+  export EXTRA_FLAGS="-flto=auto -fipa-pta -fivopts -ftree-vectorize"
+  export CFLAGS="${CFLAGS} ${EXTRA_FLAGS}"
+  export CXXFLAGS="${CXXFLAGS} ${EXTRA_FLAGS}"
+  export LDFLAGS="${LDFLAGS} -O3 ${EXTRA_FLAGS}"
   if [ ! "${OPENGL}" = "no" ]; then
     PKG_CMAKE_OPTS_TARGET+=" -DUSE_EGL=ON -DUSE_OPENGL=ON"
   fi
@@ -89,7 +92,8 @@ pre_configure_target() {
                            -DLIBPNG_LIB_DIR=${SYSROOT_PREFIX}/usr/lib \
                            -Dpng_STATIC_LIBRARIES=${SYSROOT_PREFIX}/usr/lib/libpng16.so \
                            -DCMAKE_BUILD_TYPE=Release \
-						   -DCMAKE_VERBOSE_MAKEFILE:BOOL=ON"
+                           -DCMAKE_CXX_FLAGS_RELEASE=-O3 \
+						   -DCMAKE_EXPORT_COMPILE_COMMANDS=ON"
 }
 
 makeinstall_target() {

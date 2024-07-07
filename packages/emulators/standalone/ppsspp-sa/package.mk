@@ -10,6 +10,7 @@ PKG_LICENSE="GPLv2"
 PKG_DEPENDS_TARGET="toolchain ffmpeg libzip SDL2 zlib zip"
 PKG_LONGDESC="PPSSPPDL"
 GET_HANDLER_SUPPORT="git"
+PKG_BUILD_FLAGS="+speed"
 
 ### Note:
 ### This package includes the NotoSansJP-Regular.ttf font.  This font is licensed under
@@ -20,7 +21,8 @@ GET_HANDLER_SUPPORT="git"
 PKG_PATCH_DIRS+="${DEVICE}"
 
 PKG_CMAKE_OPTS_TARGET=" -DUSE_SYSTEM_FFMPEG=OFF \
-                        -DCMAKE_BUILD_TYPE=Release \
+					    -DCMAKE_BUILD_TYPE=Release \
+						-DCMAKE_CXX_FLAGS_RELEASE=-Ofast \
                         -DCMAKE_SYSTEM_NAME=Linux \
                         -DBUILD_SHARED_LIBS=OFF \
                         -DUSE_SYSTEM_LIBPNG=OFF \
@@ -32,7 +34,8 @@ PKG_CMAKE_OPTS_TARGET=" -DUSE_SYSTEM_FFMPEG=OFF \
                         -DUNITTEST=OFF \
                         -DSIMULATOR=OFF \
                         -DHEADLESS=OFF \
-                        -DUSE_DISCORD=OFF"
+                        -DUSE_DISCORD=OFF \
+						-DCMAKE_EXPORT_COMPILE_COMMANDS=ON"
 
 if [ "${OPENGL_SUPPORT}" = "yes" ] && [ ! "${PREFER_GLES}" = "yes" ]; then
   PKG_DEPENDS_TARGET+=" ${OPENGL} glu libglvnd glew"
@@ -69,11 +72,16 @@ fi
 pre_configure_target() {
   sed -i 's/\-O[23]//g' ${PKG_BUILD}/CMakeLists.txt
   sed -i "s|include_directories(/usr/include/drm)|include_directories(${SYSROOT_PREFIX}/usr/include/drm)|" ${PKG_BUILD}/CMakeLists.txt
+export EXTRA_FLAGS="-flto=auto -fipa-pta"
+export CFLAGS="${TARGET_CFLAGS} ${EXTRA_FLAGS}"
+export CXXFLAGS="${TARGET_CXXFLAGS} ${EXTRA_FLAGS}"
+export LDFLAGS="${TARGET_LDFLAGS} -Ofast ${EXTRA_FLAGS}"
 }
 
 pre_make_target() {
-  export CPPFLAGS="${CPPFLAGS} -Wno-error"
-  export CFLAGS="${CFLAGS} -Wno-error"
+
+#  export CPPFLAGS="${CPPFLAGS} -Wno-error"
+#  export CFLAGS="${CFLAGS} -Wno-error"
 
   # fix cross compiling
   find ${PKG_BUILD} -name flags.make -exec sed -i "s:isystem :I:g" \{} \;
