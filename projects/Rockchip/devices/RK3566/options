@@ -86,7 +86,7 @@
     ROCKNIX_DEVICE_TREE_OVERLAYS="yes"
 
   # additional packages to install
-    ADDITIONAL_PACKAGES="libmali"
+    ADDITIONAL_PACKAGES="libmali numactl"
 
   # additional Firmware to use ( )
   # Space separated list is supported,
