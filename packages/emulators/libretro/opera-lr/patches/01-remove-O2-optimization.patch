@@ -1,0 +1,21 @@
+diff --git a/Makefile b/Makefile
+index f2900d6..2d9f784 100644
+--- a/Makefile
++++ b/Makefile
+@@ -544,7 +544,6 @@ include $(CORE_DIR)/Makefile.common
+ 
+ OBJECTS := $(SOURCES_C:.c=.o)
+ 
+-OPT := -O2
+ ifeq ($(DEBUG), 1)
+    ifneq (,$(findstring msvc,$(platform)))
+       OPT     = -Od
+@@ -556,7 +555,7 @@ ifeq ($(DEBUG), 1)
+    endif
+       CFLAGS += -DDEBUG
+ else
+-   OPT        = -O2
++   OPT       ?= -O2
+    CFLAGS    += -DNDEBUG
+ 
+    ifneq (,$(findstring msvc,$(platform)))
