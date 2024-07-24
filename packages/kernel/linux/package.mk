@@ -20,7 +20,7 @@ fi
 
 case ${DEVICE} in
   RK3326)
-    PKG_VERSION="6.8.9"
+    PKG_VERSION="6.6.41"
     PKG_URL="https://www.kernel.org/pub/linux/kernel/v${PKG_VERSION/.*/}.x/${PKG_NAME}-${PKG_VERSION}.tar.xz"
     PKG_PATCH_DIRS+=" mainline"
     ;;

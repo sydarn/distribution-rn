@@ -1,32 +1,20 @@
-diff -rupN linux.orig/arch/arm64/boot/dts/rockchip/Makefile linux/arch/arm64/boot/dts/rockchip/Makefile
---- linux.orig/arch/arm64/boot/dts/rockchip/Makefile	2024-05-03 13:08:45.744162556 +0000
-+++ linux/arch/arm64/boot/dts/rockchip/Makefile	2024-05-03 13:11:59.748786213 +0000
-@@ -10,9 +10,14 @@ dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3308-ro
- dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3318-a95x-z2.dtb
- dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3326-anbernic-rg351m.dtb
- dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3326-anbernic-rg351v.dtb
+diff --git a/arch/arm64/boot/dts/rockchip/Makefile b/arch/arm64/boot/dts/rockchip/Makefile
+index e7728007fd1b..ad792be98528 100644
+--- a/arch/arm64/boot/dts/rockchip/Makefile
++++ b/arch/arm64/boot/dts/rockchip/Makefile
+@@ -1,4 +1,9 @@
+ # SPDX-License-Identifier: GPL-2.0
 +dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3326-gameconsole-r33s.dtb
 +dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3326-gameconsole-r36s.dtb
 +dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3326-magicx-xu10.dtb
- dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3326-odroid-go2.dtb
- dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3326-odroid-go2-v11.dtb
- dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3326-odroid-go3.dtb
 +dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3326-powkiddy-rgb10.dtb
 +dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3326-powkiddy-rgb20s.dtb
- dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3328-a1.dtb
- dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3328-evb.dtb
- dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3328-nanopi-r2c.dtb
+ dtb-$(CONFIG_ARCH_ROCKCHIP) += px30-evb.dtb
+ dtb-$(CONFIG_ARCH_ROCKCHIP) += px30-engicam-px30-core-ctouch2.dtb
+ dtb-$(CONFIG_ARCH_ROCKCHIP) += px30-engicam-px30-core-ctouch2-of10.dtb
 diff -rupN linux.orig/arch/arm64/boot/dts/rockchip/px30.dtsi linux/arch/arm64/boot/dts/rockchip/px30.dtsi
 --- linux.orig/arch/arm64/boot/dts/rockchip/px30.dtsi	2024-05-03 13:08:45.744162556 +0000
 +++ linux/arch/arm64/boot/dts/rockchip/px30.dtsi	2024-05-03 14:47:47.003956520 +0000
-@@ -20,6 +20,7 @@
- 	#size-cells = <2>;
- 
- 	aliases {
-+		ethernet0 = &gmac;
- 		i2c0 = &i2c0;
- 		i2c1 = &i2c1;
- 		i2c2 = &i2c2;
 @@ -113,32 +114,22 @@
  		compatible = "operating-points-v2";
  		opp-shared;
@@ -150,20 +138,14 @@ diff -rupN linux.orig/arch/arm64/boot/dts/rockchip/px30.dtsi linux/arch/arm64/bo
  	};
  
  	vpu: video-codec@ff442000 {
-diff -rupN linux.orig/arch/arm64/boot/dts/rockchip/rk3326-anbernic-rg351m.dts linux/arch/arm64/boot/dts/rockchip/rk3326-anbernic-rg351m.dts
---- linux.orig/arch/arm64/boot/dts/rockchip/rk3326-anbernic-rg351m.dts	2024-05-03 13:08:45.744162556 +0000
-+++ linux/arch/arm64/boot/dts/rockchip/rk3326-anbernic-rg351m.dts	2024-05-03 13:11:59.748786213 +0000
-@@ -6,16 +6,53 @@
-  */
- 
- /dts-v1/;
--#include "rk3326-anbernic-rg351m.dtsi"
-+#include "rk3326-odroid-go.dtsi"
- 
- / {
+diff --git a/arch/arm64/boot/dts/rockchip/rk3326-anbernic-rg351m.dts b/arch/arm64/boot/dts/rockchip/rk3326-anbernic-rg351m.dts
+index ce318e05f0a6..16db3830e193 100644
+--- a/arch/arm64/boot/dts/rockchip/rk3326-anbernic-rg351m.dts
++++ b/arch/arm64/boot/dts/rockchip/rk3326-anbernic-rg351m.dts
+@@ -12,6 +12,25 @@ / {
  	model = "Anbernic RG351M";
  	compatible = "anbernic,rg351m", "rockchip,rk3326";
-+
+ 
 +        battery: battery {
 +               compatible = "simple-battery";
 +               charge-full-design-microamp-hours = <3500000>;
@@ -183,66 +165,51 @@ diff -rupN linux.orig/arch/arm64/boot/dts/rockchip/rk3326-anbernic-rg351m.dts li
 +                                       <3574170 0>;
 +       };
 +
-+	vibrator {
-+		compatible = "pwm-vibrator";
-+		pwms = <&pwm0 0 1000000 0>;
-+		pwm-names = "enable";
-+	};
+ 	vibrator {
+ 		compatible = "pwm-vibrator";
+ 		pwms = <&pwm0 0 1000000 0>;
+@@ -19,17 +38,21 @@ vibrator {
+ 	};
  };
  
-+/delete-node/ &vcc_host; /* conflicts with pwm vibration motor */
-+
+-/delete-node/ &builtin_gamepad;
+ /delete-node/ &vcc_host; /* conflicts with pwm vibration motor */
+ 
  &internal_display {
  	compatible = "elida,kd35t133";
  	iovcc-supply = <&vcc_lcd>;
--	rotation = <270>;
  	vdd-supply = <&vcc_lcd>;
-+	rotation = <270>;
-+};
-+
-+&pwm0 {
-+	status = "okay";
-+};
-+
++    rotation = <270>;
+ };
+ 
+ &pwm0 {
+ 	status = "okay";
+ };
+ 
+-/delete-node/ &rk817_charger;
 +&rk817_charger {
 +       /* This device does not have a current sense resistor */
 +       //rockchip,resistor-sense-micro-ohms = <0>;
 +       monitored-battery = <&battery>;
- };
++};
 diff -rupN linux.orig/arch/arm64/boot/dts/rockchip/rk3326-anbernic-rg351v.dts linux/arch/arm64/boot/dts/rockchip/rk3326-anbernic-rg351v.dts
---- linux.orig/arch/arm64/boot/dts/rockchip/rk3326-anbernic-rg351v.dts	2024-05-03 13:08:45.744162556 +0000
-+++ linux/arch/arm64/boot/dts/rockchip/rk3326-anbernic-rg351v.dts	2024-05-03 13:11:59.748786213 +0000
-@@ -1,32 +1,76 @@
- // SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+--- linux.orig/arch/arm64/boot/dts/rockchip/rk3326-anbernic-rg351v.dts	1970-01-01 00:00:00.000000000 +0000
++++ linux/arch/arm64/boot/dts/rockchip/rk3326-anbernic-rg351v.dts	2024-01-10 19:58:33.223462336 +0000
+@@ -0,0 +1,124 @@
++// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
 +/*
 + * Copyright (c) 2019 Hardkernel Co., Ltd
 + * Copyright (c) 2020 Theobroma Systems Design und Consulting GmbH
 + * Copyright (c) 2022 Maya Matuszczyk <maccraft123mc@gmail.com>
 + */
- 
- /dts-v1/;
--#include "rk3326-anbernic-rg351m.dtsi"
++
++/dts-v1/;
 +#include "rk3326-odroid-go.dtsi"
- 
- / {
- 	model = "Anbernic RG351V";
- 	compatible = "anbernic,rg351v", "rockchip,rk3326";
- 
--	gpio_keys_vol: gpio-keys-vol {
--		compatible = "gpio-keys";
--		autorepeat;
--
--		button-vol-down {
--			gpios = <&gpio2 RK_PA1 GPIO_ACTIVE_LOW>;
--			label = "VOLUMEDOWN";
--			linux,code = <KEY_VOLUMEDOWN>;
--		};
--
--		button-vol-up {
--			gpios = <&gpio2 RK_PA0 GPIO_ACTIVE_LOW>;
--			label = "VOLUMEUP";
--			linux,code = <KEY_VOLUMEUP>;
--		};
++
++/ {
++	model = "Anbernic RG351V";
++	compatible = "anbernic,rg351v", "rockchip,rk3326";
++
 +       aliases {
 +               mmc0 = &sdio;
 +               mmc1 = &sdmmc;
@@ -290,25 +257,25 @@ diff -rupN linux.orig/arch/arm64/boot/dts/rockchip/rk3326-anbernic-rg351v.dts li
 +		compatible = "pwm-vibrator";
 +		pwms = <&pwm0 0 1000000 0>;
 +		pwm-names = "enable";
- 	};
- };
- 
++	};
++};
++
 +/* conflicts with pwm vibration motor */
 +/delete-node/ &vcc_host;
 +
 +/* Device only has 1 LED compared to Odroid Go Advance */
 +/delete-node/ &gpio_led;
 +
- &internal_display {
- 	compatible = "anbernic,rg351v-panel", "newvision,nv3051d";
++&internal_display {
++	compatible = "anbernic,rg351v-panel", "newvision,nv3051d";
 +	iovcc-supply = <&vcc_lcd>;
- 	vdd-supply = <&vcc_lcd>;
- };
- 
-@@ -34,6 +78,33 @@
- 	vccio1-supply = <&vccio_sd>;
- };
- 
++	vdd-supply = <&vcc_lcd>;
++};
++
++&io_domains {
++	vccio1-supply = <&vccio_sd>;
++};
++
 +/delete-node/ &pwm_led;
 +
 +&pwm0 {
@@ -336,13 +303,14 @@ diff -rupN linux.orig/arch/arm64/boot/dts/rockchip/rk3326-anbernic-rg351v.dts li
 +	status = "okay";
 +};
 +
- &vcc_sd {
- 	regulator-max-microvolt = <3000000>;
- 	regulator-min-microvolt = <1800000>;
-@@ -42,3 +113,12 @@
- &vccio_sd {
- 	regulator-max-microvolt = <1800000>;
- };
++&vcc_sd {
++	regulator-max-microvolt = <3000000>;
++	regulator-min-microvolt = <1800000>;
++};
++
++&vccio_sd {
++	regulator-max-microvolt = <1800000>;
++};
 +
 +&pinctrl {
 +        btns {
