@@ -30,10 +30,12 @@ configure_package() {
   PKG_PATCH_DIRS="${PROJECT}"
 
   # Build with OpenGL / OpenGLES support
-  if [ "${OPENGL_SUPPORT}" = "yes" ]; then
+  if [ "${OPENGL_SUPPORT}" = "yes" ] && [ ! "${PREFER_GLES}" = "yes" ]; then
     PKG_DEPENDS_TARGET+=" ${OPENGL}"
+    PKG_CONFIGURE_OPTS_TARGET+=" -opengl -no-eglfs"
   elif [ "${OPENGLES_SUPPORT}" = "yes" ]; then
     PKG_DEPENDS_TARGET+=" ${OPENGLES}"
+    PKG_CONFIGURE_OPTS_TARGET+=" -opengl es2 -egl -eglfs -no-xcb -qpa eglfs"
   fi
 
   # Build with XCB support for X11
@@ -57,7 +59,7 @@ configure_package() {
 }
 
 pre_configure_target() {
-  PKG_CONFIGURE_OPTS_TARGET="-prefix /usr
+  PKG_CONFIGURE_OPTS_TARGET+=" -prefix /usr
                              -sysroot ${SYSROOT_PREFIX}
                              -hostprefix ${TOOLCHAIN}
                              -device linux-g++
@@ -82,6 +84,8 @@ pre_configure_target() {
                              -system-pcre
                              -system-sqlite
                              -system-zlib
+							 -no-kms
+							 -no-directfb
                              -no-cups
                              -no-evdev
                              -no-glib
@@ -137,7 +141,6 @@ pre_configure_target() {
                              -skip qtx11extras"
 
   # Build with OpenGL always
-  PKG_CONFIGURE_OPTS_TARGET+=" -opengl -no-eglfs"
 
   # Wayland support
   if [ ! "${DISPLAYSERVER}" = "wl" ]; then
@@ -188,8 +191,11 @@ configure_target() {
       echo "DEFINES += MESA_EGL_NO_X11_HEADERS"   >> ${QMAKE_CONF}
     fi
     if [ ! ${DISPLAYSERVER} = "x11" ]; then
-      echo "DEFINES += QT_EGL_NO_X11"             >> ${QMAKE_CONF}
-    fi
+      echo "QMAKE_LIBS_EGL += -lEGL -lGLESv2"              >> ${QMAKE_CONF}
+	  echo "QMAKE_LIBS_OPENGL_ES2	+= -lEGL -lGLESv2" 	>> ${QMAKE_CONF}
+	  echo "DEFINES += QT_EGL_NO_X11"             >> ${QMAKE_CONF}
+	  echo "QT_QPA_PLATFORM = wayland-egl"		>> ${QMAKE_CONF}
+	fi
   fi
   echo "load(qt_config)"                            >> ${QMAKE_CONF}
   echo '#include "../../linux-g++/qplatformdefs.h"' >> ${QMAKE_CONF_DIR}/qplatformdefs.h
@@ -244,16 +250,16 @@ post_makeinstall_target() {
 
   # Install libs, plugins & qml for Wayland/X11 display server
   if [ ${DISPLAYSERVER} = "x11" ]; then
-    cp -PR ${PKG_QT5_SYSROOT_PATH}/lib/libQt5XcbQpa.so*      ${INSTALL}/usr/lib
     cp -PR ${PKG_QT5_SYSROOT_PATH}/plugins/xcbglintegrations ${INSTALL}/usr/plugins
   elif [ ${DISPLAYSERVER} = "wl" ]; then
-    cp -PR ${PKG_QT5_SYSROOT_PATH}/lib/libQt5XcbQpa.so*      ${INSTALL}/usr/lib
-    cp -PR ${PKG_QT5_SYSROOT_PATH}/plugins/xcbglintegrations ${INSTALL}/usr/plugins
+    cp -PR ${PKG_QT5_SYSROOT_PATH}/lib/libQt5EglFSDeviceIntegration.so*     ${INSTALL}/usr/lib
+    cp -PR ${PKG_QT5_SYSROOT_PATH}/lib/libQt5EglFsKmsSupport.so*     ${INSTALL}/usr/lib
     cp -PR ${PKG_QT5_SYSROOT_PATH}/lib/libQt5WaylandClient.so*     ${INSTALL}/usr/lib
     cp -PR ${PKG_QT5_SYSROOT_PATH}/lib/libQt5WaylandCompositor.so* ${INSTALL}/usr/lib
 
     cp -PR ${PKG_QT5_SYSROOT_PATH}/plugins/platforms/libqwayland*              ${INSTALL}/usr/plugins/platforms
     cp -PR ${PKG_QT5_SYSROOT_PATH}/plugins/wayland-decoration-client           ${INSTALL}/usr/plugins
+    cp -PR ${PKG_QT5_SYSROOT_PATH}/plugins/egldeviceintegrations               ${INSTALL}/usr/plugins
     cp -PR ${PKG_QT5_SYSROOT_PATH}/plugins/wayland-graphics-integration-client ${INSTALL}/usr/plugins
     cp -PR ${PKG_QT5_SYSROOT_PATH}/plugins/wayland-graphics-integration-server ${INSTALL}/usr/plugins
     cp -PR ${PKG_QT5_SYSROOT_PATH}/plugins/wayland-shell-integration           ${INSTALL}/usr/plugins
