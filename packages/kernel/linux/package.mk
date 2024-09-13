@@ -26,10 +26,10 @@ case ${DEVICE} in
     PKG_PATCH_DIRS+=" mainline"
     ;;
   RK3588)
-    PKG_VERSION="494c0a303537c55971421b5552d98eb55e652cf3"
+    PKG_VERSION="71039841e6100b280bc90d91b7b6b9d33ec84897"
     PKG_URL="https://github.com/armbian/linux-rockchip/archive/${PKG_VERSION}.tar.gz"
-    PKG_GIT_CLONE_BRANCH="rk-5.10-rkr6"
-    ;;
+    PKG_GIT_CLONE_BRANCH="rk-6.1-rkr3"
+  ;;
   H700)
     PKG_VERSION="e3c121d666583f4cf32883b123ef84166b4998f6"
     PKG_URL="https://git.sr.ht/~tokyovigilante/linux/archive/${PKG_VERSION}.tar.gz"
