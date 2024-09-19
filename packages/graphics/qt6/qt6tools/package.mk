@@ -7,7 +7,7 @@ PKG_VERSION="${PKG_MAJOR_VERSION}.3"
 PKG_LICENSE="GPLv3"
 PKG_SITE="https://download.qt.io"
 PKG_URL="${PKG_SITE}/archive/qt/${PKG_MAJOR_VERSION}/${PKG_VERSION}/submodules/qttools-everywhere-src-${PKG_VERSION}.tar.xz"
-PKG_DEPENDS_HOST="toolchain:host qt6base"
+PKG_DEPENDS_HOST="toolchain:host qt6base:host"
 PKG_DEPENDS_TARGET="toolchain qt6tools:host qt6base"
 PKG_LONGDESC="QT6 Tools package"
 
@@ -26,7 +26,7 @@ pre_configure_host() {
 pre_configure_target() {
   PKG_CMAKE_OPTS_TARGET+="	-GNinja \
 				-DQT_HOST_PATH=${PKG_BUILD}/.x86_64-linux-gnu/lib/cmake \
-				-DQt6CoreTools_DIR=${PKG_BUILD}/../qt6base-6.6.3/.x86_64-linux-gnu/lib/cmake/Qt6CoreTools \
+				-DQt6CoreTools_DIR=${PKG_BUILD}/../qt6base-${PKG_VERSION}/.x86_64-linux-gnu/lib/cmake/Qt6CoreTools \
 				-DQt6LinguistTools_DIR=${PKG_BUILD}/.x86_64-linux-gnu/lib/cmake/Qt6LinguistTools \
 				-DQT_FEATURE_linguist=ON \
 				-DQT_FEATURE_qdbus=ON \

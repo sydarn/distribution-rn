@@ -14,7 +14,7 @@ PKG_LONGDESC="QT6 Tools package"
 pre_configure_host() {
  PKG_CMAKE_OPTS_HOST+="		-GNinja \
 				-DQT_HOST_PATH=${PKG_BUILD}/.x86_64-linux-gnu \
-				-DQt6HostInfo_DIR=${PKG_BUILD}/../qt6base-6.6.3/.x86_64-linux-gnu/lib/cmake/Qt6HostInfo \
+				-DQt6HostInfo_DIR=${PKG_BUILD}/../qt6base-${PKG_VERSION}/.x86_64-linux-gnu/lib/cmake/Qt6HostInfo \
 				-DBUILD_WITH_PCH=OFF \
 				-DQT_BUILD_TESTS=ON \
 				-DQT_BUILD_MANUAL_TESTS=ON \
@@ -25,10 +25,10 @@ pre_configure_host() {
 pre_configure_target() {
   PKG_CMAKE_OPTS_TARGET+="	-GNinja \
 				-DQT_HOST_PATH=${PKG_BUILD}/.x86_64-linux-gnu \
-				-DQt6BuildInternals_DIR=${PKG_BUILD}/../qt6base-6.6.3/.x86_64-linux-gnu/lib/cmake/Qt6BuildInternals \
-				-DQt6Core_DIR=${PKG_BUILD}/../qt6base-6.6.3/.x86_64-linux-gnu/lib/cmake/Qt6Core \
-				-DQt6CoreTools_DIR=${PKG_BUILD}/../qt6base-6.6.3/.x86_64-linux-gnu/lib/cmake/Qt6CoreTools \
-				-DQt6_DIR=${PKG_BUILD}/../qt6base-6.6.3/.x86_64-linux-gnu/lib/cmake/Qt6 \
+				-DQt6BuildInternals_DIR=${PKG_BUILD}/../qt6base-${PKG_VERSION}/.x86_64-linux-gnu/lib/cmake/Qt6BuildInternals \
+				-DQt6Core_DIR=${PKG_BUILD}/../qt6base-${PKG_VERSION}/.x86_64-linux-gnu/lib/cmake/Qt6Core \
+				-DQt6CoreTools_DIR=${PKG_BUILD}/../qt6base-${PKG_VERSION}/.x86_64-linux-gnu/lib/cmake/Qt6CoreTools \
+				-DQt6_DIR=${PKG_BUILD}/../qt6base-${PKG_VERSION}/.x86_64-linux-gnu/lib/cmake/Qt6 \
 				-DBUILD_WITH_PCH=OFF \
 				-DQT_BUILD_EXAMPLES=OFF
 				-DQT_BUILD_TESTS=OFF \

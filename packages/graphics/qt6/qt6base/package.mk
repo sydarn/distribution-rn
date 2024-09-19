@@ -26,6 +26,7 @@ PKG_CMAKE_OPTS_HOST+="
         -DFEATURE_glib=OFF \
         -DFEATURE_system_pcre2=ON \
         -DFEATURE_system_zlib=ON \
+        -DFEATURE_no_opengl=ON \
         -DQT_BUILD_TESTS_BY_DEFAULT=OFF \
         -DQT_BUILD_EXAMPLES_BY_DEFAULT=OFF \
         -DCMAKE_CROSSCOMPILING=OFF"
@@ -54,6 +55,8 @@ pre_configure_target() {
 	-DFEATURE_gui=ON \
 	-DFEATURE_freetype=ON \
 	-DFEATURE_vulkan=OFF \
+    -DFEATURE_opengles2=ON \
+    -DFEATURE_opengles3=ON \
 	-DFEATURE_dbus=ON"
 
 }

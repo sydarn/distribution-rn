@@ -65,7 +65,7 @@ pre_configure_host() {
   PKG_CMAKE_OPTS_HOST="${PKG_CMAKE_OPTS_COMMON} \
                        -DCMAKE_BINARY_DIR=${PKG_BUILD}/.${HOST_NAME} \
                        -DLLVM_NATIVE_BUILD=${PKG_BUILD}/.${HOST_NAME}/native \
-                       -DLLVM_ENABLE_PROJECTS='clang' \
+                       -DLLVM_ENABLE_PROJECTS='clang;libclc' \
                        -DCLANG_LINK_CLANG_DYLIB=ON \
                        -DLLVM_TARGETS_TO_BUILD=${LLVM_BUILD_TARGETS}"
 }
@@ -99,7 +99,7 @@ pre_configure_target() {
                          -DCMAKE_BINARY_DIR=${PKG_BUILD}/.${TARGET_NAME} \
                          -DLLVM_NATIVE_BUILD=${PKG_BUILD}/.${TARGET_NAME}/native \
                          -DCMAKE_CROSSCOMPILING=ON \
-                         -DLLVM_ENABLE_PROJECTS='' \
+                         -DLLVM_ENABLE_PROJECTS='libclc' \
                          -DLLVM_TARGETS_TO_BUILD=AMDGPU \
                          -DLLVM_TARGET_ARCH="${TARGET_ARCH}" \
                          -DLLVM_TABLEGEN=${TOOLCHAIN}/bin/llvm-tblgen \
