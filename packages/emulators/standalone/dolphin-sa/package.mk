@@ -22,11 +22,13 @@ case ${DEVICE} in
   *)
     PKG_SITE="https://github.com/dolphin-emu/dolphin"
     PKG_URL="${PKG_SITE}.git"
+    PKG_DEPENDS_TARGET+=" qt6"
     PKG_VERSION="e6583f8bec814d8f3748f1d7738457600ce0de56"
     PKG_PATCH_DIRS+=" wayland"
-    PKG_CMAKE_OPTS_TARGET+=" -DENABLE_QT=OFF \
+    PKG_CMAKE_OPTS_TARGET+=" -DENABLE_QT=ON \
                              -DUSE_RETRO_ACHIEVEMENTS=OFF \
-                             -DENABLE_HEADLESS=ON"
+                             -DQT_VERSION_MAJOR=6 \
+                             -DENABLE_HEADLESS=OFF"
   ;;
 esac
 
@@ -99,7 +101,7 @@ post_install() {
       ;;
       *)
         DOLPHIN_PLATFORM="wayland"
-        EXPORTS=""
+        EXPORTS="export QT_QPA_PLATFORM=wayland"
       ;;
     esac
     sed -e "s/@DOLPHIN_PLATFORM@/${DOLPHIN_PLATFORM}/g" -i ${INSTALL}/usr/bin/start_dolphin_gc.sh

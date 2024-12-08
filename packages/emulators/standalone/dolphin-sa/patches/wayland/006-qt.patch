@@ -1,0 +1,256 @@
+diff --git a/Source/Core/DolphinQt/Host.cpp b/Source/Core/DolphinQt/Host.cpp
+index 5ccd10189c..b6a9f5ca0e 100644
+--- a/Source/Core/DolphinQt/Host.cpp
++++ b/Source/Core/DolphinQt/Host.cpp
+@@ -68,7 +68,7 @@ bool Host::IsHostThread()
+   return tls_is_host_thread;
+ }
+ 
+-void Host::SetRenderHandle(void* handle)
++void Host::SetRenderHandle(void* handle, int width, int height)
+ {
+   m_render_to_main = Config::Get(Config::MAIN_RENDER_TO_MAIN);
+ 
+@@ -78,8 +78,9 @@ void Host::SetRenderHandle(void* handle)
+   m_render_handle = handle;
+   if (g_renderer)
+   {
+-    g_renderer->ChangeSurface(handle);
+-    g_controller_interface.ChangeWindow(handle);
++    g_renderer->ChangeSurface(handle, width, height);
++    if (g_controller_interface.IsInit())
++      g_controller_interface.ChangeWindow(handle, width, height);
+   }
+ }
+ 
+@@ -189,7 +190,11 @@ void Host::SetRenderFullscreen(bool fullscreen)
+ void Host::ResizeSurface(int new_width, int new_height)
+ {
+   if (g_renderer)
+-    g_renderer->ResizeSurface();
++  {
++    g_renderer->ResizeSurface(new_width, new_height);
++    if (g_controller_interface.IsInit())
++      g_controller_interface.OnWindowResized(new_width, new_height);
++  }
+ }
+ 
+ std::vector<std::string> Host_GetPreferredLocales()
+diff --git a/Source/Core/DolphinQt/Host.h b/Source/Core/DolphinQt/Host.h
+index 6ddc4cb3e4..40e24aa8a6 100644
+--- a/Source/Core/DolphinQt/Host.h
++++ b/Source/Core/DolphinQt/Host.h
+@@ -30,7 +30,7 @@ public:
+   bool GetGBAFocus();
+ 
+   void SetMainWindowHandle(void* handle);
+-  void SetRenderHandle(void* handle);
++  void SetRenderHandle(void* handle, int width, int height);
+   void SetRenderFocus(bool focus);
+   void SetRenderFullFocus(bool focus);
+   void SetRenderFullscreen(bool fullscreen);
+diff --git a/Source/Core/DolphinQt/MainWindow.cpp b/Source/Core/DolphinQt/MainWindow.cpp
+index be9f8f6db1..4cbbafe4fc 100644
+--- a/Source/Core/DolphinQt/MainWindow.cpp
++++ b/Source/Core/DolphinQt/MainWindow.cpp
+@@ -12,6 +12,7 @@
+ #include <QFileInfo>
+ #include <QIcon>
+ #include <QMimeData>
++#include <QScreen>
+ #include <QStackedWidget>
+ #include <QVBoxLayout>
+ #include <QWindow>
+@@ -172,26 +173,40 @@ static WindowSystemType GetWindowSystemType()
+   return WindowSystemType::Headless;
+ }
+ 
+-static WindowSystemInfo GetWindowSystemInfo(QWindow* window)
++static WindowSystemInfo GetWindowSystemInfo(QWidget* widget)
+ {
+   WindowSystemInfo wsi;
+   wsi.type = GetWindowSystemType();
+ 
++  QWindow* window = widget ? widget->windowHandle() : nullptr;
++  if (!widget || !window)
++  {
++    wsi.display_connection = nullptr;
++    wsi.render_window = nullptr;
++    wsi.render_surface = nullptr;
++    wsi.render_surface_scale = 1.0f;
++    wsi.render_surface_width = 0;
++    wsi.render_surface_height = 0;
++    return wsi;
++  }
++
+   // Our Win32 Qt external doesn't have the private API.
+ #if defined(WIN32) || defined(__APPLE__) || defined(__HAIKU__)
+-  wsi.render_window = window ? reinterpret_cast<void*>(window->winId()) : nullptr;
++  wsi.render_window = reinterpret_cast<void*>(window->winId());
+   wsi.render_surface = wsi.render_window;
+ #else
+   QPlatformNativeInterface* pni = QGuiApplication::platformNativeInterface();
+   wsi.display_connection = pni->nativeResourceForWindow("display", window);
+   if (wsi.type == WindowSystemType::Wayland)
+-    wsi.render_window = window ? pni->nativeResourceForWindow("surface", window) : nullptr;
++    wsi.render_window = pni->nativeResourceForWindow("surface", window);
+   else
+-    wsi.render_window = window ? reinterpret_cast<void*>(window->winId()) : nullptr;
++    wsi.render_window = reinterpret_cast<void*>(window->winId());
++
+   wsi.render_surface = wsi.render_window;
+ #endif
+-  wsi.render_surface_scale = window ? static_cast<float>(window->devicePixelRatio()) : 1.0f;
+-
++  wsi.render_surface_scale = static_cast<float>(widget->screen()->devicePixelRatio());
++  wsi.render_surface_width = static_cast<int>(widget->size().width() * wsi.render_surface_scale);
++  wsi.render_surface_height = static_cast<int>(widget->size().height() * wsi.render_surface_scale);
+   return wsi;
+ }
+ 
+@@ -323,7 +338,7 @@ void MainWindow::InitControllers()
+   if (g_controller_interface.IsInit())
+     return;
+ 
+-  UICommon::InitControllers(GetWindowSystemInfo(windowHandle()));
++  UICommon::InitControllers(GetWindowSystemInfo(this));
+ 
+   m_hotkey_scheduler = new HotkeyScheduler();
+   m_hotkey_scheduler->Start();
+@@ -1049,8 +1064,7 @@ void MainWindow::StartGame(std::unique_ptr<BootParameters>&& parameters)
+   ShowRenderWidget();
+ 
+   // Boot up, show an error if it fails to load the game.
+-  if (!BootManager::BootCore(std::move(parameters),
+-                             GetWindowSystemInfo(m_render_widget->windowHandle())))
++  if (!BootManager::BootCore(std::move(parameters), GetWindowSystemInfo(m_render_widget)))
+   {
+     ModalMessageBox::critical(this, tr("Error"), tr("Failed to init core"), QMessageBox::Ok);
+     HideRenderWidget();
+@@ -1128,7 +1142,11 @@ void MainWindow::HideRenderWidget(bool reinit, bool is_exit)
+     // Remove the widget from the stack and reparent it to nullptr, so that it can draw
+     // itself in a new window if it wants. Disconnect the title updates.
+     m_stack->removeWidget(m_render_widget);
+-    m_render_widget->setParent(nullptr);
++
++    // Don't bother unparenting it if we're going to destroy the window anyway.
++    if (!reinit)
++      m_render_widget->setParent(nullptr);
++
+     m_rendering_to_main = false;
+     m_stack->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Preferred);
+     disconnect(Host::GetInstance(), &Host::RequestTitle, this, &MainWindow::setWindowTitle);
+@@ -1140,9 +1158,7 @@ void MainWindow::HideRenderWidget(bool reinit, bool is_exit)
+   // recreated
+   if (reinit)
+   {
+-    m_render_widget->hide();
+     disconnect(m_render_widget, &RenderWidget::Closed, this, &MainWindow::ForceStop);
+-
+     m_render_widget->removeEventFilter(this);
+     m_render_widget->deleteLater();
+ 
+@@ -1158,9 +1174,9 @@ void MainWindow::HideRenderWidget(bool reinit, bool is_exit)
+     // The controller interface will still be registered to the old render widget, if the core
+     // has booted. Therefore, we should re-bind it to the main window for now. When the core
+     // is next started, it will be swapped back to the new render widget.
+-    g_controller_interface.ChangeWindow(GetWindowSystemInfo(windowHandle()).render_window,
+-                                        is_exit ? ControllerInterface::WindowChangeReason::Exit :
+-                                                  ControllerInterface::WindowChangeReason::Other);
++    const WindowSystemInfo wsi = GetWindowSystemInfo(this);
++    g_controller_interface.ChangeWindow(wsi.render_surface, wsi.render_surface_width,
++                                        wsi.render_surface_height);
+   }
+ }
+ 
+diff --git a/Source/Core/DolphinQt/RenderWidget.cpp b/Source/Core/DolphinQt/RenderWidget.cpp
+index cb55877ace..0ae2a9f605 100644
+--- a/Source/Core/DolphinQt/RenderWidget.cpp
++++ b/Source/Core/DolphinQt/RenderWidget.cpp
+@@ -204,6 +204,11 @@ void RenderWidget::showFullScreen()
+   emit SizeChanged(width() * dpr, height() * dpr);
+ }
+ 
++float RenderWidget::GetDevicePixelRatio() const
++{
++  return screen()->devicePixelRatio();
++}
++
+ // Lock the cursor within the window/widget internal borders, including the aspect ratio if wanted
+ void RenderWidget::SetCursorLocked(bool locked, bool follow_aspect_ratio)
+ {
+@@ -379,8 +384,12 @@ bool RenderWidget::event(QEvent* event)
+     }
+     break;
+   case QEvent::WinIdChange:
+-    emit HandleChanged(reinterpret_cast<void*>(winId()));
+-    break;
++  {
++    const float dpr = GetDevicePixelRatio();
++    emit HandleChanged(reinterpret_cast<void*>(winId()), static_cast<int>(width() * dpr),
++                       static_cast<int>(height() * dpr));
++  }
++  break;
+   case QEvent::Show:
+     // Don't do if "stay on top" changed (or was true)
+     if (Settings::Instance().GetLockCursor() &&
+@@ -443,13 +452,10 @@ bool RenderWidget::event(QEvent* event)
+     SetCursorLocked(m_cursor_locked);
+ 
+     const QResizeEvent* se = static_cast<QResizeEvent*>(event);
+-    QSize new_size = se->size();
+-
+-    QScreen* screen = window()->windowHandle()->screen();
+-
+-    const auto dpr = screen->devicePixelRatio();
+-
+-    emit SizeChanged(new_size.width() * dpr, new_size.height() * dpr);
++    const QSize new_size = se->size();
++    const float dpr = GetDevicePixelRatio();
++    emit SizeChanged(static_cast<int>(new_size.width() * dpr),
++                     static_cast<int>(new_size.height() * dpr));
+     break;
+   }
+   // Happens when we add/remove the widget from the main window instead of the dedicated one
+diff --git a/Source/Core/DolphinQt/RenderWidget.h b/Source/Core/DolphinQt/RenderWidget.h
+index c8ea1e3a84..942a7c1d10 100644
+--- a/Source/Core/DolphinQt/RenderWidget.h
++++ b/Source/Core/DolphinQt/RenderWidget.h
+@@ -24,10 +24,12 @@ public:
+   void SetWaitingForMessageBox(bool waiting_for_message_box);
+   void SetCursorLocked(bool locked, bool follow_aspect_ratio = true);
+ 
++  float GetDevicePixelRatio() const;
++
+ signals:
+   void EscapePressed();
+   void Closed();
+-  void HandleChanged(void* handle);
++  void HandleChanged(void* handle, int new_width, int new_height);
+   void StateChanged(bool fullscreen);
+   void SizeChanged(int new_width, int new_height);
+   void FocusChanged(bool focus);
+diff --git a/Source/Core/DolphinQt/CMakeLists.txt b/Source/Core/DolphinQt/CMakeLists.txt
+index 930e95820b..794c85ed70 100644
+--- a/Source/Core/DolphinQt/CMakeLists.txt
++++ b/Source/Core/DolphinQt/CMakeLists.txt
+@@ -377,6 +377,7 @@ target_link_libraries(dolphin-emu
+ PRIVATE
+   core
+   Qt${QT_VERSION_MAJOR}::Widgets
++  Qt${QT_VERSION_MAJOR}::Gui
+   uicommon
+   imgui
+   implot
+diff --git a/Source/Core/DolphinQt/Resources.h b/Source/Core/DolphinQt/Resources.h
+index 67ffc23d4d..bf7abe9b8b 100644
+--- a/Source/Core/DolphinQt/Resources.h
++++ b/Source/Core/DolphinQt/Resources.h
+@@ -3,6 +3,7 @@
+ 
+ #pragma once
+ 
++#include <QIcon>
+ #include <QList>
+ #include <QPixmap>
+ #include <string_view>

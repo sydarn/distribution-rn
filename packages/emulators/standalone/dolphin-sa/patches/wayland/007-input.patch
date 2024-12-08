@@ -1,0 +1,831 @@
+diff --git a/Source/Core/InputCommon/CMakeLists.txt b/Source/Core/InputCommon/CMakeLists.txt
+index 20ae0f3f17..95b35b14ad 100644
+--- a/Source/Core/InputCommon/CMakeLists.txt
++++ b/Source/Core/InputCommon/CMakeLists.txt
+@@ -129,15 +129,6 @@ elseif(APPLE)
+   target_compile_options(inputcommon PRIVATE
+     -fobjc-arc
+   )
+-elseif(X11_FOUND)
+-  target_sources(inputcommon PRIVATE
+-    ControllerInterface/Xlib/XInput2.cpp
+-    ControllerInterface/Xlib/XInput2.h
+-  )
+-  target_link_libraries(inputcommon PUBLIC
+-    ${X11_LIBRARIES}
+-    ${X11_INPUT_LIBRARIES}
+-  )
+ elseif(ANDROID)
+   target_compile_definitions(inputcommon PRIVATE -DCIFACE_USE_ANDROID)
+   target_sources(inputcommon PRIVATE
+@@ -150,6 +141,27 @@ elseif(ANDROID)
+     ControllerInterface/Touch/Touchscreen.cpp
+     ControllerInterface/Touch/Touchscreen.h
+   )
++else()
++  if(ENABLE_X11 AND X11_FOUND)
++    target_sources(inputcommon PRIVATE
++      ControllerInterface/Xlib/XInput2.cpp
++      ControllerInterface/Xlib/XInput2.h
++    )
++    target_link_libraries(inputcommon PUBLIC
++      ${X11_LIBRARIES}
++      ${X11_INPUT_LIBRARIES}
++    )
++  endif()
++  if(ENABLE_WAYLAND AND WAYLAND_FOUND)
++    target_sources(inputcommon PRIVATE
++      ControllerInterface/Wayland/Wayland.cpp
++      ControllerInterface/Wayland/Wayland.h
++    )
++    target_include_directories(inputcommon PRIVATE
++      ${WAYLAND_INCLUDE_DIR} ${XKBCOMMON_INCLUDE_DIR})
++    target_link_libraries(inputcommon PRIVATE
++      ${WAYLAND_LIBRARIES} ${XKBCOMMON_LIBRARIES})
++  endif()
+ endif()
+ 
+ if(NOT ANDROID)
+diff --git a/Source/Core/InputCommon/ControllerInterface/ControllerInterface.cpp b/Source/Core/InputCommon/ControllerInterface/ControllerInterface.cpp
+index 6a6affd478..51eab88606 100644
+--- a/Source/Core/InputCommon/ControllerInterface/ControllerInterface.cpp
++++ b/Source/Core/InputCommon/ControllerInterface/ControllerInterface.cpp
+@@ -15,6 +15,9 @@
+ #ifdef CIFACE_USE_XLIB
+ #include "InputCommon/ControllerInterface/Xlib/XInput2.h"
+ #endif
++#ifdef CIFACE_USE_WAYLAND
++#include "InputCommon/ControllerInterface/Wayland/Wayland.h"
++#endif
+ #ifdef CIFACE_USE_OSX
+ #include "InputCommon/ControllerInterface/OSX/OSX.h"
+ #include "InputCommon/ControllerInterface/Quartz/Quartz.h"
+@@ -50,7 +53,10 @@ void ControllerInterface::Initialize(const WindowSystemInfo& wsi)
+ 
+   std::lock_guard lk_population(m_devices_population_mutex);
+ 
++  // Prevent divide by zero if we somehow end up with a 0x0 window.
+   m_wsi = wsi;
++  m_wsi.render_surface_width = std::max(m_wsi.render_surface_width, 1);
++  m_wsi.render_surface_height = std::max(m_wsi.render_surface_height, 1);
+ 
+   m_populating_devices_counter = 1;
+ 
+@@ -60,6 +66,9 @@ void ControllerInterface::Initialize(const WindowSystemInfo& wsi)
+ #ifdef CIFACE_USE_XLIB
+ // nothing needed
+ #endif
++#ifdef CIFACE_USE_WAYLAND
++// nothing needed
++#endif
+ #ifdef CIFACE_USE_OSX
+ // nothing needed for OSX and Quartz
+ #endif
+@@ -94,13 +103,15 @@ void ControllerInterface::Initialize(const WindowSystemInfo& wsi)
+     InvokeDevicesChangedCallbacks();
+ }
+ 
+-void ControllerInterface::ChangeWindow(void* hwnd, WindowChangeReason reason)
++void ControllerInterface::ChangeWindow(void* hwnd, int width, int height, WindowChangeReason reason)
+ {
+   if (!m_is_init)
+     return;
+ 
+   // This shouldn't use render_surface so no need to update it.
+   m_wsi.render_window = hwnd;
++  m_wsi.render_surface_width = std::max(width, 1);
++  m_wsi.render_surface_height = std::max(height, 1);
+ 
+   // No need to re-add devices if this is an application exit request
+   if (reason == WindowChangeReason::Exit)
+@@ -109,6 +120,15 @@ void ControllerInterface::ChangeWindow(void* hwnd, WindowChangeReason reason)
+     RefreshDevices(RefreshReason::WindowChangeOnly);
+ }
+ 
++void ControllerInterface::OnWindowResized(int width, int height)
++{
++  m_wsi.render_surface_width = std::max(width, 1);
++  m_wsi.render_surface_height = std::max(height, 1);
++  std::lock_guard lk(m_devices_mutex);
++  for (const auto& d : m_devices)
++    d->OnWindowResized(width, height);
++}
++
+ void ControllerInterface::RefreshDevices(RefreshReason reason)
+ {
+   if (!m_is_init)
+@@ -169,7 +189,11 @@ void ControllerInterface::RefreshDevices(RefreshReason reason)
+ #endif
+ #ifdef CIFACE_USE_XLIB
+   if (m_wsi.type == WindowSystemType::X11)
+-    ciface::XInput2::PopulateDevices(m_wsi.render_window);
++    ciface::XInput2::PopulateDevices(m_wsi);
++#endif
++#ifdef CIFACE_USE_WAYLAND
++  if (m_wsi.type == WindowSystemType::Wayland)
++    ciface::Wayland::PopulateDevices(m_wsi);
+ #endif
+ #ifdef CIFACE_USE_OSX
+   if (m_wsi.type == WindowSystemType::MacOS)
+@@ -232,6 +256,9 @@ void ControllerInterface::Shutdown()
+ #ifdef CIFACE_USE_XLIB
+ // nothing needed
+ #endif
++#ifdef CIFACE_USE_WAYLAND
++// nothing needed
++#endif
+ #ifdef CIFACE_USE_OSX
+   ciface::OSX::DeInit();
+   ciface::Quartz::DeInit();
+diff --git a/Source/Core/InputCommon/ControllerInterface/ControllerInterface.h b/Source/Core/InputCommon/ControllerInterface/ControllerInterface.h
+index 59909aeec8..9bce26789b 100644
+--- a/Source/Core/InputCommon/ControllerInterface/ControllerInterface.h
++++ b/Source/Core/InputCommon/ControllerInterface/ControllerInterface.h
+@@ -30,6 +30,9 @@
+ #if defined(USE_PIPES)
+ #define CIFACE_USE_PIPES
+ #endif
++#if defined(HAVE_WAYLAND)
++#define CIFACE_USE_WAYLAND
++#endif
+ #define CIFACE_USE_DUALSHOCKUDPCLIENT
+ #if defined(HAVE_SDL2)
+ #define CIFACE_USE_SDL
+@@ -82,7 +85,9 @@ public:
+   ControllerInterface() : m_is_init(false) {}
+   void Initialize(const WindowSystemInfo& wsi);
+   // Only call from one thread at a time.
+-  void ChangeWindow(void* hwnd, WindowChangeReason reason = WindowChangeReason::Other);
++  void ChangeWindow(void* hwnd, int width, int height,
++                    WindowChangeReason reason = WindowChangeReason::Other);
++  void OnWindowResized(int width, int height);
+   // Can be called by any thread at any time (when initialized).
+   void RefreshDevices(RefreshReason reason = RefreshReason::Other);
+   void Shutdown();
+diff --git a/Source/Core/InputCommon/ControllerInterface/CoreDevice.h b/Source/Core/InputCommon/ControllerInterface/CoreDevice.h
+index 2280ddac3b..c9f2c95752 100644
+--- a/Source/Core/InputCommon/ControllerInterface/CoreDevice.h
++++ b/Source/Core/InputCommon/ControllerInterface/CoreDevice.h
+@@ -139,6 +139,9 @@ public:
+   // Every platform should have at least one device with priority >= 0.
+   virtual int GetSortPriority() const { return 0; }
+ 
++  // Called when the window the device is bound to is resized.
++  virtual void OnWindowResized(int width, int height) {}
++
+   const std::vector<Input*>& Inputs() const { return m_inputs; }
+   const std::vector<Output*>& Outputs() const { return m_outputs; }
+ 
+diff --git a/Source/Core/InputCommon/ControllerInterface/Wayland/Wayland.cpp b/Source/Core/InputCommon/ControllerInterface/Wayland/Wayland.cpp
+new file mode 100644
+index 0000000000..68db95e5a2
+--- /dev/null
++++ b/Source/Core/InputCommon/ControllerInterface/Wayland/Wayland.cpp
+@@ -0,0 +1,395 @@
++// Copyright 2018 Dolphin Emulator Project
++// Licensed under GPLv2+
++// Refer to the license.txt file included.
++
++#include <cmath>
++#include <cstdlib>
++#include <cstring>
++#include <linux/input-event-codes.h>
++#include <sys/mman.h>
++#include <unistd.h>
++
++#include "InputCommon/ControllerInterface/Wayland/Wayland.h"
++
++#include "Common/Assert.h"
++#include "Common/StringUtil.h"
++
++// Mouse axis control output is simply divided by this number. In practice,
++// that just means you can use a smaller "dead zone" if you bind axis controls
++// to a joystick. No real need to make this customizable.
++#define MOUSE_AXIS_SENSITIVITY 8.0f
++
++// The mouse axis controls use a weighted running average. Each frame, the new
++// value is the average of the old value and the amount of relative mouse
++// motion during that frame. The old value is weighted by a ratio of
++// MOUSE_AXIS_SMOOTHING:1 compared to the new value. Increasing
++// MOUSE_AXIS_SMOOTHING makes the controls smoother, decreasing it makes them
++// more responsive. This might be useful as a user-customizable option.
++#define MOUSE_AXIS_SMOOTHING 1.5f
++
++namespace ciface
++{
++namespace Wayland
++{
++void PopulateDevices(const WindowSystemInfo& wsi)
++{
++  std::shared_ptr<KeyboardMouse> dev = std::make_shared<KeyboardMouse>();
++  if (!dev->Initialize(wsi))
++    return;
++
++  g_controller_interface.AddDevice(dev);
++}
++
++KeyboardMouse::KeyboardMouse() = default;
++
++KeyboardMouse::~KeyboardMouse()
++{
++  if (m_xkb_state)
++    xkb_state_unref(m_xkb_state);
++  if (m_xkb_keymap)
++    xkb_keymap_unref(m_xkb_keymap);
++  if (m_wl_keyboard)
++    wl_keyboard_destroy(m_wl_keyboard);
++  if (m_wl_pointer)
++    wl_pointer_destroy(m_wl_pointer);
++  if (m_wl_seat)
++    wl_seat_destroy(m_wl_seat);
++  if (m_wl_registry)
++    wl_registry_destroy(m_wl_registry);
++  if (m_xkb_context)
++    xkb_context_unref(m_xkb_context);
++  if (m_display_proxy)
++    wl_proxy_wrapper_destroy(m_display_proxy);
++  if (m_event_queue)
++    wl_event_queue_destroy(m_event_queue);
++}
++
++bool KeyboardMouse::Initialize(const WindowSystemInfo& wsi)
++{
++  m_display = static_cast<wl_display*>(wsi.display_connection);
++  m_window_width = wsi.render_surface_width;
++  m_window_height = wsi.render_surface_height;
++  m_event_queue = wl_display_create_queue(m_display);
++  if (!m_event_queue)
++    return false;
++
++  // As UpdateInput() can be called from the CPU, we don't want to clash with the main (UI) thread.
++  // Therefore, we create a second event queue for retrieving keyboard/mouse events.
++  m_display_proxy = static_cast<wl_display*>(wl_proxy_create_wrapper(m_display));
++  if (!m_display_proxy)
++    return false;
++
++  wl_proxy_set_queue(reinterpret_cast<wl_proxy*>(m_display_proxy), m_event_queue);
++  m_xkb_context = xkb_context_new(XKB_CONTEXT_NO_FLAGS);
++  if (!m_xkb_context)
++    return false;
++
++  static const wl_registry_listener registry_listener = {GlobalRegistryHandler,
++                                                         GlobalRegistryRemover};
++  m_wl_registry = wl_display_get_registry(m_display_proxy);
++  wl_proxy_set_queue(reinterpret_cast<wl_proxy*>(m_display_proxy), m_event_queue);
++  wl_registry_add_listener(m_wl_registry, &registry_listener, this);
++
++  // Call back to registry listener to get compositor/shell.
++  wl_display_dispatch_queue(m_display, m_event_queue);
++  wl_display_roundtrip_queue(m_display, m_event_queue);
++  // We need to do this twice so the seat listener is called.
++  wl_display_dispatch_queue(m_display, m_event_queue);
++
++  // If we have a keyboard, keep dispatching until we get the keymap.
++  if (m_wl_keyboard)
++  {
++    while (!m_xkb_keymap)
++    {
++      if (wl_display_dispatch_queue(m_display, m_event_queue) == -1)
++        break;
++    }
++  }
++
++  // Keyboard Keys
++  if (m_xkb_keymap)
++    AddKeyInputs();
++
++  // Mouse Buttons
++  if (m_wl_pointer)
++  {
++    for (int i = 0; i < 32; i++)
++      AddInput(new Button(i, &m_state.buttons));
++
++    // Mouse Cursor, X-/+ and Y-/+
++    for (int i = 0; i != 4; ++i)
++      AddInput(new Cursor(!!(i & 2), !!(i & 1), (i & 2) ? &m_state.cursor.y : &m_state.cursor.x));
++
++    // Mouse Axis, X-/+ and Y-/+
++    for (int i = 0; i != 4; ++i)
++      AddInput(new Axis(!!(i & 2), !!(i & 1), (i & 2) ? &m_state.axis.y : &m_state.axis.x));
++  }
++
++  return true;
++}
++
++void KeyboardMouse::UpdateInput()
++{
++  while (wl_display_prepare_read_queue(m_display, m_event_queue) != 0)
++    wl_display_dispatch_queue_pending(m_display, m_event_queue);
++
++  wl_display_read_events(m_display);
++  wl_display_dispatch_queue_pending(m_display, m_event_queue);
++}
++
++void KeyboardMouse::OnWindowResized(int width, int height)
++{
++  m_window_width = width;
++  m_window_height = height;
++}
++
++void KeyboardMouse::PointerEnter(void* data, wl_pointer* pointer, uint32_t serial,
++                                 wl_surface* surface, wl_fixed_t surface_x, wl_fixed_t surface_y)
++{
++}
++
++void KeyboardMouse::PointerLeave(void* data, wl_pointer* pointer, uint32_t serial,
++                                 wl_surface* surface)
++{
++}
++
++void KeyboardMouse::PointerMotion(void* data, wl_pointer* pointer, uint32_t time, wl_fixed_t x,
++                                  wl_fixed_t y)
++{
++  KeyboardMouse* kbm = static_cast<KeyboardMouse*>(data);
++  const float pos_x = static_cast<float>(wl_fixed_to_double(x));
++  const float pos_y = static_cast<float>(wl_fixed_to_double(y));
++  const float delta_x = pos_x - kbm->m_state.cursor.x;
++  const float delta_y = pos_y - kbm->m_state.cursor.y;
++
++  // apply axis smoothing
++  kbm->m_state.axis.x *= MOUSE_AXIS_SMOOTHING;
++  kbm->m_state.axis.x += delta_x;
++  kbm->m_state.axis.x /= MOUSE_AXIS_SMOOTHING + 1.0f;
++  kbm->m_state.axis.y *= MOUSE_AXIS_SMOOTHING;
++  kbm->m_state.axis.y += delta_y;
++  kbm->m_state.axis.y /= MOUSE_AXIS_SMOOTHING + 1.0f;
++
++  kbm->m_state.cursor.x = (pos_x / static_cast<float>(kbm->m_window_width) * 2.0f) - 1.0f;
++  kbm->m_state.cursor.y = (pos_y / static_cast<float>(kbm->m_window_height) * 2.0f) - 1.0f;
++}
++
++void KeyboardMouse::PointerButton(void* data, wl_pointer* pointer, uint32_t serial, uint32_t time,
++                                  uint32_t button, uint32_t state)
++{
++  KeyboardMouse* kbm = static_cast<KeyboardMouse*>(data);
++  if (button < BTN_MOUSE || (button - BTN_MOUSE) >= 32)
++    return;
++
++  const u32 mask = 1u << (button - BTN_MOUSE);
++  if (state == WL_POINTER_BUTTON_STATE_PRESSED)
++    kbm->m_state.buttons |= mask;
++  else if (state == WL_POINTER_BUTTON_STATE_RELEASED)
++    kbm->m_state.buttons &= ~mask;
++}
++
++void KeyboardMouse::PointerAxis(void* data, wl_pointer* pointer, uint32_t time, uint32_t axis,
++                                wl_fixed_t value)
++{
++  // TODO: Wheel support.
++  // KeyboardMouse* kbm = static_cast<KeyboardMouse*>(data);
++  // printf("pointer axis %u %f\n", axis, wl_fixed_to_double(value));
++}
++
++void KeyboardMouse::KeyboardKeymap(void* data, wl_keyboard* keyboard, uint32_t format, int32_t fd,
++                                   uint32_t size)
++{
++  KeyboardMouse* kbm = static_cast<KeyboardMouse*>(data);
++  char* keymap_string = static_cast<char*>(mmap(NULL, size, PROT_READ, MAP_SHARED, fd, 0));
++  if (kbm->m_xkb_keymap)
++    xkb_keymap_unref(kbm->m_xkb_keymap);
++  kbm->m_xkb_keymap = xkb_keymap_new_from_string(
++      kbm->m_xkb_context, keymap_string, XKB_KEYMAP_FORMAT_TEXT_V1, XKB_KEYMAP_COMPILE_NO_FLAGS);
++  munmap(keymap_string, size);
++  close(fd);
++  if (kbm->m_xkb_state)
++    xkb_state_unref(kbm->m_xkb_state);
++  kbm->m_xkb_state = xkb_state_new(kbm->m_xkb_keymap);
++}
++
++void KeyboardMouse::KeyboardEnter(void* data, wl_keyboard* keyboard, uint32_t serial,
++                                  wl_surface* surface, wl_array* keys)
++{
++}
++
++void KeyboardMouse::KeyboardLeave(void* data, wl_keyboard* keyboard, uint32_t serial,
++                                  wl_surface* surface)
++{
++}
++
++void KeyboardMouse::KeyboardKey(void* data, wl_keyboard* keyboard, uint32_t serial, uint32_t time,
++                                uint32_t key, uint32_t state)
++{
++  KeyboardMouse* kbm = static_cast<KeyboardMouse*>(data);
++
++  const xkb_keycode_t keycode = static_cast<xkb_keycode_t>(key + 8);
++  if (keycode < kbm->m_min_keycode && keycode > kbm->m_max_keycode)
++    return;
++
++  const u32 bit_index = static_cast<u32>(keycode - kbm->m_min_keycode);
++  const u32 array_index = bit_index / 32;
++  const u32 mask = 1u << (bit_index % 32);
++  if (state == WL_KEYBOARD_KEY_STATE_PRESSED)
++    kbm->m_state.keyboard[array_index] |= mask;
++  else if (state == WL_KEYBOARD_KEY_STATE_RELEASED)
++    kbm->m_state.keyboard[array_index] &= ~mask;
++}
++
++void KeyboardMouse::KeyboardModifiers(void* data, wl_keyboard* keyboard, uint32_t serial,
++                                      uint32_t mods_depressed, uint32_t mods_latched,
++                                      uint32_t mods_locked, uint32_t group)
++{
++  KeyboardMouse* kbm = static_cast<KeyboardMouse*>(data);
++  xkb_state_update_mask(kbm->m_xkb_state, mods_depressed, mods_latched, mods_locked, 0, 0, group);
++}
++
++void KeyboardMouse::AddKeyInputs()
++{
++  m_min_keycode = xkb_keymap_min_keycode(m_xkb_keymap);
++  m_max_keycode = xkb_keymap_max_keycode(m_xkb_keymap);
++  ASSERT(m_max_keycode >= m_min_keycode);
++
++  // Allocate bitmask for key state.
++  const u32 num_keycodes = static_cast<u32>(m_max_keycode - m_min_keycode) + 1;
++  m_state.keyboard.resize((num_keycodes + 31) / 32);
++
++  for (xkb_keycode_t keycode = m_min_keycode; keycode <= m_max_keycode; keycode++)
++  {
++    const xkb_layout_index_t num_layouts = xkb_keymap_num_layouts_for_key(m_xkb_keymap, keycode);
++    if (num_layouts == 0)
++      continue;
++
++    // Take the first layout which we find a valid keysym for.
++    Key* key = nullptr;
++    for (xkb_layout_index_t layout = 0; layout < num_layouts && !key; layout++)
++    {
++      const xkb_level_index_t num_levels =
++          xkb_keymap_num_levels_for_key(m_xkb_keymap, keycode, layout);
++      if (num_levels == 0)
++        continue;
++
++      // Take the first level which we find a valid keysym for.
++      for (xkb_level_index_t level = 0; level < num_levels; level++)
++      {
++        const xkb_keysym_t* keysyms;
++        int num_syms =
++            xkb_keymap_key_get_syms_by_level(m_xkb_keymap, keycode, layout, level, &keysyms);
++        if (num_syms == 0)
++          continue;
++
++        // Just take the first. Should only be one in most cases anyway.
++        const xkb_keysym_t keysym = xkb_keysym_to_upper(keysyms[0]);
++
++        char keysym_name_buf[64];
++        if (xkb_keysym_get_name(keysym, keysym_name_buf, sizeof(keysym_name_buf)) <= 0)
++          continue;
++
++        const u32 bit_index = static_cast<u32>(keycode - m_min_keycode);
++        const u32 array_index = bit_index / 32;
++        const u32 mask = 1u << (bit_index % 32);
++        key = new Key(keysym_name_buf, keycode, m_state, array_index, mask);
++        AddInput(key);
++        break;
++      }
++    }
++  }
++}
++
++void KeyboardMouse::SeatCapabilities(void* data, wl_seat* seat, uint32_t capabilities)
++{
++  KeyboardMouse* kbm = static_cast<KeyboardMouse*>(data);
++  if (capabilities & WL_SEAT_CAPABILITY_KEYBOARD)
++  {
++    static const wl_keyboard_listener keyboard_listener = {
++        &KeyboardMouse::KeyboardKeymap, &KeyboardMouse::KeyboardEnter,
++        &KeyboardMouse::KeyboardLeave, &KeyboardMouse::KeyboardKey,
++        &KeyboardMouse::KeyboardModifiers};
++    kbm->m_wl_keyboard = wl_seat_get_keyboard(seat);
++    wl_keyboard_add_listener(kbm->m_wl_keyboard, &keyboard_listener, kbm);
++  }
++  if (capabilities & WL_SEAT_CAPABILITY_POINTER)
++  {
++    static const wl_pointer_listener pointer_listener = {
++        &KeyboardMouse::PointerEnter, &KeyboardMouse::PointerLeave, &KeyboardMouse::PointerMotion,
++        &KeyboardMouse::PointerButton, &KeyboardMouse::PointerAxis};
++    kbm->m_wl_pointer = wl_seat_get_pointer(seat);
++    wl_pointer_add_listener(kbm->m_wl_pointer, &pointer_listener, kbm);
++  }
++}
++
++void KeyboardMouse::GlobalRegistryHandler(void* data, wl_registry* registry, uint32_t id,
++                                          const char* interface, uint32_t version)
++{
++  KeyboardMouse* kbm = static_cast<KeyboardMouse*>(data);
++  if (std::strcmp(interface, "wl_seat") == 0)
++  {
++    static const wl_seat_listener seat_listener = {&KeyboardMouse::SeatCapabilities};
++    kbm->m_wl_seat = static_cast<wl_seat*>(wl_registry_bind(registry, id, &wl_seat_interface, 1));
++    wl_seat_add_listener(kbm->m_wl_seat, &seat_listener, kbm);
++  }
++}
++
++void KeyboardMouse::GlobalRegistryRemover(void* data, wl_registry* registry, uint32_t id)
++{
++}
++
++std::string KeyboardMouse::GetName() const
++{
++  return "Keyboard and Mouse";
++}
++
++std::string KeyboardMouse::GetSource() const
++{
++  return "Wayland";
++}
++
++KeyboardMouse::Key::Key(const std::string& name, const xkb_keycode_t keycode, const State& state,
++                        const u32 index, const u32 mask)
++    : m_keyname(name), m_keycode(keycode), m_state(state), m_index(index), m_mask(mask)
++{
++}
++
++ControlState KeyboardMouse::Key::GetState() const
++{
++  return (m_state.keyboard[m_index] & m_mask) != 0;
++}
++
++KeyboardMouse::Button::Button(unsigned int index, unsigned int* buttons)
++    : m_buttons(buttons), m_index(index)
++{
++  m_name = StringFromFormat("Click %d", m_index + 1);
++}
++
++ControlState KeyboardMouse::Button::GetState() const
++{
++  return ((*m_buttons & (1 << m_index)) != 0);
++}
++
++KeyboardMouse::Cursor::Cursor(u8 index, bool positive, const float* cursor)
++    : m_cursor(cursor), m_index(index), m_positive(positive)
++{
++  m_name = std::string("Cursor ") + (char)('X' + m_index) + (m_positive ? '+' : '-');
++}
++
++ControlState KeyboardMouse::Cursor::GetState() const
++{
++  return std::max(0.0f, *m_cursor / (m_positive ? 1.0f : -1.0f));
++}
++
++KeyboardMouse::Axis::Axis(u8 index, bool positive, const float* axis)
++    : m_axis(axis), m_index(index), m_positive(positive)
++{
++  m_name = std::string("Axis ") + (char)('X' + m_index) + (m_positive ? '+' : '-');
++}
++
++ControlState KeyboardMouse::Axis::GetState() const
++{
++  return std::max(0.0f, *m_axis / (m_positive ? MOUSE_AXIS_SENSITIVITY : -MOUSE_AXIS_SENSITIVITY));
++}
++}  // namespace Wayland
++}  // namespace ciface
+diff --git a/Source/Core/InputCommon/ControllerInterface/Wayland/Wayland.h b/Source/Core/InputCommon/ControllerInterface/Wayland/Wayland.h
+new file mode 100644
+index 0000000000..22639a63f2
+--- /dev/null
++++ b/Source/Core/InputCommon/ControllerInterface/Wayland/Wayland.h
+@@ -0,0 +1,151 @@
++// Copyright 2018 Dolphin Emulator Project
++// Licensed under GPLv2+
++// Refer to the license.txt file included.
++
++#pragma once
++
++#include <vector>
++#include <wayland-client-protocol.h>
++#include <xkbcommon/xkbcommon.h>
++
++#include "Common/CommonTypes.h"
++#include "Common/WindowSystemInfo.h"
++#include "InputCommon/ControllerInterface/ControllerInterface.h"
++
++namespace ciface
++{
++namespace Wayland
++{
++void PopulateDevices(const WindowSystemInfo& wsi);
++
++class KeyboardMouse : public Core::Device
++{
++private:
++  struct State
++  {
++    std::vector<u32> keyboard;
++    unsigned int buttons;
++    struct
++    {
++      float x, y;
++    } cursor, axis;
++  };
++
++  class Key : public Input
++  {
++    friend class KeyboardMouse;
++
++  public:
++    std::string GetName() const override { return m_keyname; }
++    Key(const std::string& name, const xkb_keycode_t keycode, const State& state, const u32 index,
++        const u32 mask);
++    ControlState GetState() const override;
++
++  private:
++    const std::string m_keyname;
++    const xkb_keycode_t m_keycode;
++    const State& m_state;
++    const u32 m_index;
++    const u32 m_mask;
++  };
++
++  class Button : public Input
++  {
++  public:
++    std::string GetName() const override { return m_name; }
++    Button(unsigned int index, unsigned int* buttons);
++    ControlState GetState() const override;
++
++  private:
++    const unsigned int* m_buttons;
++    const unsigned int m_index;
++    std::string m_name;
++  };
++
++  class Cursor : public Input
++  {
++  public:
++    std::string GetName() const override { return m_name; }
++    bool IsDetectable() const override { return false; }
++    Cursor(u8 index, bool positive, const float* cursor);
++    ControlState GetState() const override;
++
++  private:
++    const float* m_cursor;
++    const u8 m_index;
++    const bool m_positive;
++    std::string m_name;
++  };
++
++  class Axis : public Input
++  {
++  public:
++    std::string GetName() const override { return m_name; }
++    bool IsDetectable() const override { return false; }
++    Axis(u8 index, bool positive, const float* axis);
++    ControlState GetState() const override;
++
++  private:
++    const float* m_axis;
++    const u8 m_index;
++    const bool m_positive;
++    std::string m_name;
++  };
++
++public:
++  KeyboardMouse();
++  ~KeyboardMouse();
++
++  bool Initialize(const WindowSystemInfo& wsi);
++
++  std::string GetName() const override;
++  std::string GetSource() const override;
++  void UpdateInput() override;
++  void OnWindowResized(int width, int height) override;
++
++private:
++  void AddKeyInputs();
++
++  static void PointerEnter(void* data, wl_pointer* pointer, uint32_t serial, wl_surface* surface,
++                           wl_fixed_t surface_x, wl_fixed_t surface_y);
++  static void PointerLeave(void* data, wl_pointer* pointer, uint32_t serial, wl_surface* surface);
++  static void PointerMotion(void* data, wl_pointer* pointer, uint32_t time, wl_fixed_t x,
++                            wl_fixed_t y);
++  static void PointerButton(void* data, wl_pointer* pointer, uint32_t serial, uint32_t time,
++                            uint32_t button, uint32_t state);
++  static void PointerAxis(void* data, wl_pointer* pointer, uint32_t time, uint32_t axis,
++                          wl_fixed_t value);
++  static void KeyboardKeymap(void* data, wl_keyboard* keyboard, uint32_t format, int32_t fd,
++                             uint32_t size);
++  static void KeyboardEnter(void* data, wl_keyboard* keyboard, uint32_t serial, wl_surface* surface,
++                            wl_array* keys);
++  static void KeyboardLeave(void* data, wl_keyboard* keyboard, uint32_t serial,
++                            wl_surface* surface);
++  static void KeyboardKey(void* data, wl_keyboard* keyboard, uint32_t serial, uint32_t time,
++                          uint32_t key, uint32_t state);
++  static void KeyboardModifiers(void* data, wl_keyboard* keyboard, uint32_t serial,
++                                uint32_t mods_depressed, uint32_t mods_latched,
++                                uint32_t mods_locked, uint32_t group);
++  static void SeatCapabilities(void* data, wl_seat* seat, uint32_t capabilities);
++  static void GlobalRegistryHandler(void* data, wl_registry* registry, uint32_t id,
++                                    const char* interface, uint32_t version);
++  static void GlobalRegistryRemover(void* data, wl_registry* registry, uint32_t id);
++
++  wl_display* m_display = nullptr;
++  wl_display* m_display_proxy = nullptr;
++  wl_event_queue* m_event_queue = nullptr;
++  wl_registry* m_wl_registry = nullptr;
++  wl_seat* m_wl_seat = nullptr;
++  wl_keyboard* m_wl_keyboard = nullptr;
++  wl_pointer* m_wl_pointer = nullptr;
++  xkb_context* m_xkb_context = nullptr;
++  xkb_keymap* m_xkb_keymap = nullptr;
++  xkb_state* m_xkb_state = nullptr;
++  State m_state = {};
++  xkb_keycode_t m_min_keycode = {};
++  xkb_keycode_t m_max_keycode = {};
++  int m_window_width = 1;
++  int m_window_height = 1;
++};
++}  // namespace Wayland
++}  // namespace ciface
+diff --git a/Source/Core/InputCommon/ControllerInterface/Xlib/XInput2.h b/Source/Core/InputCommon/ControllerInterface/Xlib/XInput2.h
+index ff2c787b1d..971aaced5c 100644
+--- a/Source/Core/InputCommon/ControllerInterface/Xlib/XInput2.h
++++ b/Source/Core/InputCommon/ControllerInterface/Xlib/XInput2.h
+@@ -18,7 +18,7 @@ extern "C" {
+ 
+ namespace ciface::XInput2
+ {
+-void PopulateDevices(void* const hwnd);
++void PopulateDevices(const WindowSystemInfo& wsi);
+ 
+ class KeyboardMouse : public Core::Device
+ {
+@@ -112,9 +112,10 @@ private:
+ 
+ public:
+   void UpdateInput() override;
++  void OnWindowResized(int width, int height) override;
+ 
+-  KeyboardMouse(Window window, int opcode, int pointer_deviceid, int keyboard_deviceid,
+-                double scroll_increment);
++  KeyboardMouse(const WindowSystemInfo& wsi, int opcode, int pointer_deviceid,
++                int keyboard_deviceid, double scroll_increment);
+   ~KeyboardMouse();
+ 
+   std::string GetName() const override;
+@@ -129,5 +130,7 @@ private:
+   const int keyboard_deviceid;
+   const double scroll_increment;
+   std::string name;
++  int m_window_width;
++  int m_window_height;
+ };
+ }  // namespace ciface::XInput2
+diff --git a/Source/Core/InputCommon/ControllerInterface/Xlib/XInput2.cpp b/Source/Core/InputCommon/ControllerInterface/Xlib/XInput2.cpp
+index c0594b6662..46ab6e4151 100644
+--- a/Source/Core/InputCommon/ControllerInterface/Xlib/XInput2.cpp
++++ b/Source/Core/InputCommon/ControllerInterface/Xlib/XInput2.cpp
+@@ -59,7 +59,7 @@
+ namespace ciface::XInput2
+ {
+ // This function will add zero or more KeyboardMouse objects to devices.
+-void PopulateDevices(void* const hwnd)
++void PopulateDevices(const WindowSystemInfo& wsi)
+ {
+   Display* dpy = XOpenDisplay(nullptr);
+ 
+@@ -106,9 +106,9 @@ void PopulateDevices(void* const hwnd)
+       }
+       // Since current_master is a master pointer, its attachment must
+       // be a master keyboard.
+-      g_controller_interface.AddDevice(
+-          std::make_shared<KeyboardMouse>((Window)hwnd, xi_opcode, current_master->deviceid,
+-                                          current_master->attachment, scroll_increment));
++       g_controller_interface.AddDevice(std::make_shared<KeyboardMouse>(
++          wsi, xi_opcode, current_master->deviceid, current_master->attachment,
++          scroll_increment));
+     }
+   }
+ 
+@@ -150,9 +149,10 @@ void KeyboardMouse::SelectEventsForDevice(XIEventMask* mask, int deviceid)
+   XIFreeDeviceInfo(all_slaves);
+ }
+ 
+-KeyboardMouse::KeyboardMouse(Window window, int opcode, int pointer, int keyboard,
++KeyboardMouse::KeyboardMouse(const WindowSystemInfo& wsi, int opcode, int pointer, int keyboard,
+                              double scroll_increment)
+-    : m_window(window), xi_opcode(opcode), pointer_deviceid(pointer), keyboard_deviceid(keyboard),
++    : m_window(reinterpret_cast<Window>(wsi.render_window)), xi_opcode(opcode),
++      pointer_deviceid(pointer), keyboard_deviceid(keyboard),
+       scroll_increment(scroll_increment)
+ {
+   // The cool thing about each KeyboardMouse object having its own Display
+@@ -161,6 +160,8 @@ KeyboardMouse::KeyboardMouse(Window window, int opcode, int pointer, int keyboar
+   // in. So be aware that each KeyboardMouse object actually has its own X11
+   // "context."
+   m_display = XOpenDisplay(nullptr);
++  m_window_width = wsi.render_surface_width;
++  m_window_height = wsi.render_surface_height;
+ 
+   // should always be 1
+   int unused;
+@@ -395,6 +396,12 @@ void KeyboardMouse::UpdateInput()
+     m_state.keyboard[i] &= keyboard[i];
+ }
+ 
++void KeyboardMouse::OnWindowResized(int width, int height)
++{
++  m_window_width = width;
++  m_window_height = height;
++}
++
+ std::string KeyboardMouse::GetName() const
+ {
+   // This is the name string we got from the X server for this master

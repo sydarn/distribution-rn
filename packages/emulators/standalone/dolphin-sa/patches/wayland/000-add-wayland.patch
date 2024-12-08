@@ -492,18 +492,6 @@ diff -rupN dolphin.orig/Source/Core/Core/ConfigManager.h dolphin/Source/Core/Cor
    std::string m_game_id;
    std::string m_gametdb_id;
    std::string m_title_name;
-diff -rupN dolphin.orig/Source/Core/Core/Core.cpp dolphin/Source/Core/Core/Core.cpp
---- dolphin.orig/Source/Core/Core/Core.cpp	2024-03-05 04:05:26.578982537 +0000
-+++ dolphin/Source/Core/Core/Core.cpp	2024-03-05 04:06:08.240295843 +0000
-@@ -474,6 +474,8 @@ static void EmuThread(std::unique_ptr<Bo
-   // is relative to the render window, instead of the main window.
-   ASSERT(g_controller_interface.IsInit());
-   g_controller_interface.ChangeWindow(wsi.render_window);
-+  //g_controller_interface.ChangeWindow(wsi.render_surface, wsi.render_surface_width,
-+    //                                    wsi.render_surface_height);
- 
-   Pad::LoadConfig();
-   Pad::LoadGBAConfig();
 diff -rupN dolphin.orig/Source/Core/Core/HW/GCPadEmu.cpp dolphin/Source/Core/Core/HW/GCPadEmu.cpp
 --- dolphin.orig/Source/Core/Core/HW/GCPadEmu.cpp	2024-03-05 04:05:26.582982663 +0000
 +++ dolphin/Source/Core/Core/HW/GCPadEmu.cpp	2024-03-05 14:39:55.915795457 +0000
@@ -713,7 +701,7 @@ diff -rupN dolphin.orig/Source/Core/DolphinNoGUI/Platform.h dolphin/Source/Core/
 diff -rupN dolphin.orig/Source/Core/DolphinNoGUI/PlatformWayland.cpp dolphin/Source/Core/DolphinNoGUI/PlatformWayland.cpp
 --- dolphin.orig/Source/Core/DolphinNoGUI/PlatformWayland.cpp	1970-01-01 00:00:00.000000000 +0000
 +++ dolphin/Source/Core/DolphinNoGUI/PlatformWayland.cpp	2024-03-05 04:06:08.240295843 +0000
-@@ -0,0 +1,364 @@
+@@ -0,0 +1,366 @@
 +// Copyright 2018 Dolphin Emulator Project
 +// Licensed under GPLv2+
 +// Refer to the license.txt file included.
@@ -726,6 +714,7 @@ diff -rupN dolphin.orig/Source/Core/DolphinNoGUI/PlatformWayland.cpp dolphin/Sou
 +#include "Core/Config/MainSettings.h"
 +#include "Core/Core.h"
 +#include "Core/State.h"
++#include "InputCommon/ControllerInterface/ControllerInterface.h"
 +
 +#include "Core/HW/GCPad.h"
 +#include "InputCommon/GCPadStatus.h"
@@ -851,10 +840,11 @@ diff -rupN dolphin.orig/Source/Core/DolphinNoGUI/PlatformWayland.cpp dolphin/Sou
 +  PlatformWayland* platform = static_cast<PlatformWayland*>(data);
 +  platform->m_surface_width = width;
 +  platform->m_surface_height = height;
-+  if (g_renderer)
++  if (g_renderer) {
 +    g_renderer->ResizeSurface(width, height);
-+  //if (g_controller_interface.IsInit())
-+    //g_controller_interface.OnWindowResized(width, height);
++    if (g_controller_interface.IsInit())
++      g_controller_interface.OnWindowResized(width, height);
++  }
 +}
 +
 +void PlatformWayland::TopLevelClose(void* data, struct xdg_toplevel* xdg_toplevel)
@@ -5368,3 +5358,18 @@ diff -rupN dolphin.orig/Source/Core/VideoCommon/TextureCacheBase.cpp dolphin/Sou
  
    TCacheEntry* entry = nullptr;
    if (copy_to_vram)
+diff --git a/Source/Core/Core/Core.cpp b/Source/Core/Core/Core.cpp
+index 7757414834..c8f7958339 100644
+--- a/Source/Core/Core/Core.cpp
++++ b/Source/Core/Core/Core.cpp
+@@ -473,7 +473,9 @@ static void EmuThread(std::unique_ptr<BootParameters> boot, WindowSystemInfo wsi
+   // Switch the window used for inputs to the render window. This way, the cursor position
+   // is relative to the render window, instead of the main window.
+   ASSERT(g_controller_interface.IsInit());
+-  g_controller_interface.ChangeWindow(wsi.render_window);
++  g_controller_interface.ChangeWindow(wsi.render_window, wsi.render_surface_width,
++                                      wsi.render_surface_height);
++
+ 
+   Pad::LoadConfig();
+   Pad::LoadGBAConfig();
