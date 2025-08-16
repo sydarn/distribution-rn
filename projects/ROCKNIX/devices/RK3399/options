@@ -43,8 +43,8 @@
     ATF_PLATFORM="rk3399"
 
   # Mali GPU family
-    MALI_FAMILY="t860"
-    GRAPHIC_DRIVERS="panfrost"
+    MALI_FAMILY="midgard-t86x"
+    GRAPHIC_DRIVERS="mali panfrost"
 
   # Several libretro cores doesn't work with GL, so prefer GLES for this reason
     PREFER_GLES="yes"
@@ -53,7 +53,7 @@
     DISPLAYSERVER="wl"
 
   # Windowmanager to use (weston / swaywm-env / no)
-    WINDOWMANAGER="swaywm-env"
+    WINDOWMANAGER="weston"
 
   # Pipewire audio support (yes / no)
     PIPEWIRE_SUPPORT="yes"
@@ -62,7 +62,7 @@
   # for a list of additional drivers see packages/linux-drivers
   # Space separated list is supported,
   # e.g. ADDITIONAL_DRIVERS="DRIVER1 DRIVER2"
-    ADDITIONAL_DRIVERS=""
+    ADDITIONAL_DRIVERS="mali-midgard"
 
   # Additional Firmware to use ( )
   # Space separated list is supported,
@@ -70,7 +70,8 @@
     FIRMWARE="RTL8188FU-firmware"
 
   # Additional packages to install
-    ADDITIONAL_PACKAGES=""
+    ADDITIONAL_PACKAGES="libmali"
+    ADDITIONAL_PACKAGES_32BIT="libmali"
 
   # Debug tty path
     DEBUG_TTY="/dev/ttyS2"

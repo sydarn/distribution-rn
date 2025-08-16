@@ -11,6 +11,13 @@ PKG_DEPENDS_TARGET="toolchain wayland wayland-protocols libdrm libxkbcommon libx
 PKG_LONGDESC="Reference implementation of a Wayland compositor"
 PKG_PATCH_DIRS+="${DEVICE}"
 
+if [ "${DEVICE}" = "RK3399" ]; then
+  PKG_VERSION="57e2ec8d6f6f168bcd2f91d9f05bdde660dcaa12"
+  PKG_URL="https://github.com/JeffyCN/weston/archive/${PKG_VERSION}.tar.gz"
+else
+  PKG_PATCH_DIRS+=" upstream"
+fi
+
 if [ "${PIPEWIRE_SUPPORT}" = "yes" ]; then
   PKG_DEPENDS_TARGET+=" pipewire"
   PKG_MESON_OPTS_TARGET+=" -Dpipewire=true"
@@ -41,7 +48,7 @@ PKG_MESON_OPTS_TARGET+=" -Dbackend-drm=true \
                          -Dimage-jpeg=true \
                          -Dimage-webp=true \
                          -Dtools=['terminal','debug','info']
-                         -Ddemo-clients=true \
+                         -Ddemo-clients=false \
                          -Dsimple-clients=[] \
                          -Dresize-pool=false \
                          -Dwcap-decode=true \

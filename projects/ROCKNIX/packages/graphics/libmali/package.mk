@@ -18,6 +18,10 @@ PKG_PATCH_DIRS+=" ${DEVICE}"
 # patchelf is incompatible with strip, but is needed to ensure apps call wrapped functions
 PKG_BUILD_FLAGS="-strip"
 
+if [ "${MALI_FAMILY}" = "midgard-t86x" ]; then
+  PKG_VERSION="r18p0"
+fi
+
 case "${DISPLAYSERVER}" in
   wl)
     PLATFORM="wayland-gbm"
