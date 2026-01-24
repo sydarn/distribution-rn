@@ -1,109 +1,107 @@
-UITheme = ""
-RecentROM = ["roms/nds/Mario Kart DS.nds", "/storage/roms/nds/Mario Kart DS.nds"]
-SlowmoFPS = 30.0
+RecentROM = ["roms/nds/Mario Kart DS.nds"]
 FastForwardFPS = 1000.0
 PauseLostFocus = false
+AudioSync = false
+UITheme = ""
 TargetFPS = 60.0
 LimitFPS = true
-AudioSync = false
-EnableCheats = false
-SaveFilePath = "/storage/roms/nds"
-JoystickID = 0
-SavestatePath = "/storage/roms/savestates/nds"
+SlowmoFPS = 30.0
 
-[Window1]
-ScreenSizing = 5
-Enabled = true
-ScreenLayout = 2
+[Audio]
+Interpolation = 0
+BitDepth = 0
+
+[DLDI]
+Enable = false
+
+[Mic]
+InputType = 1
+Device = ""
+WavPath = ""
+
+[LAN]
+DirectMode = false
 
 [Savestate]
 RelocSRAM = false
 
 [Emu]
-ExternalBIOSEnable = false
 DirectBoot = true
+ExternalBIOSEnable = false
 ConsoleType = 0
 
-[JIT]
-FastMemory = true
-LiteralOptimisations = true
-BranchOptimisations = true
-MaxBlockSize = 32
-Enable = true
+[MP]
+RecvTimeout = 25
+AudioMode = 1
 
 [3D]
 Renderer = 0
 
-[3D.GL]
-BetterPolygons = false
-ScaleFactor = 1
-
 [3D.Soft]
 Threaded = true
 
-[Screen]
-VSyncInterval = 1
-VSync = true
-UseGL = false
-Filter = true
-
-[DSi]
-FirmwarePath = "/storage/roms/bios/dsi_firmware.bin"
-NANDPath = "/storage/roms/bios/dsi_nand.bin"
-BIOS7Path = "/storage/roms/bios/dsi_bios7.bin"
-BIOS9Path = "/storage/roms/bios/dsi_bios9.bin"
-
-[DSi.Camera1]
-DeviceName = ""
-ImagePath = ""
-XFlip = false
-InputType = 0
-
-[DSi.Camera0]
-DeviceName = ""
-ImagePath = ""
-XFlip = false
-InputType = 0
-
-[DSi.Battery]
-Charging = true
-Level = 15
-
-[DSi.SD]
-FolderSync = false
-ReadOnly = false
-ImagePath = "dsisd.bin"
-ImageSize = 0
+[JIT]
 Enable = false
+FastMemory = true
+BranchOptimisations = true
+LiteralOptimisations = true
+MaxBlockSize = 32
+
+[Screen]
+UseGL = false
+
+[Mouse]
+Hide = false
+HideSeconds = 5
 
 [Instance0]
+PauseLostFocus = false
 AudioSync = false
 SaveFilePath = "/storage/roms/nds"
 LimitFPS = true
 JoystickID = 0
-PauseLostFocus = false
 CheatFilePath = ""
 EnableCheats = false
 SavestatePath = "/storage/roms/savestates/nds"
 
+[Instance0.LAN]
+DirectMode = false
+
 [Instance0.RTC]
 Offset = 0
 
+[Instance0.Mic]
+InputType = 0
+
 [Instance0.Keyboard]
-Left = -1
-HK_SwapScreens = -1
-HK_FastForward = -1
-HK_Mic = -1
+HK_GuitarGripYellow = -1
+HK_SlowMoToggle = -1
+HK_FastForwardToggle = -1
+HK_Lid = -1
+HK_FrameStep = -1
+HK_SaveState = -1
+Y = -1
 Down = -1
 B = -1
-X = -1
+HK_SolarSensorIncrease = -1
+HK_FrameLimitToggle = -1
 HK_SlowMo = -1
 HK_FullscreenToggle = -1
-HK_SolarSensorIncrease = -1
+Up = -1
+X = -1
+Right = -1
+HK_Pause = -1
+Start = -1
+HK_LoadState = -1
+Select = -1
 A = -1
-R = -1
 L = -1
+R = -1
 HK_GuitarGripRed = -1
+HK_Mic = -1
+HK_FastForward = -1
+HK_SwapScreens = -1
+Left = -1
 HK_Reset = -1
 HK_PowerButton = -1
 HK_VolumeDown = -1
@@ -112,20 +110,11 @@ HK_SwapScreenEmphasis = -1
 HK_SolarSensorDecrease = -1
 HK_VolumeUp = -1
 HK_GuitarGripGreen = -1
-Y = -1
-HK_SaveState = -1
-HK_FrameStep = -1
-HK_Lid = -1
-HK_FastForwardToggle = -1
-HK_SlowMoToggle = -1
-HK_GuitarGripYellow = -1
-HK_FrameLimitToggle = -1
-Up = -1
-Right = -1
-HK_Pause = -1
-Start = -1
-HK_LoadState = -1
-Select = -1
+
+[Instance0.Emu]
+ExternalBIOSEnable = false
+DirectBoot = true
+ConsoleType = 0
 
 [Instance0.Window2]
 Enabled = false
@@ -136,11 +125,6 @@ LiteralOptimisations = true
 BranchOptimisations = true
 MaxBlockSize = 32
 Enable = true
-
-[Instance0.Emu]
-ExternalBIOSEnable = false
-DirectBoot = true
-ConsoleType = 0
 
 [Instance0.Savestate]
 RelocSRAM = false
@@ -227,30 +211,44 @@ Enabled = true
 [Instance0.Window3]
 Enabled = false
 
-[Instance0.Mouse]
-HideSeconds = 5
-Hide = false
-
 [Instance0.Audio]
 DSiVolumeSync = false
 Volume = 256
 Interpolation = 0
 
+[Instance0.Mouse]
+HideSeconds = 5
+Hide = false
+
 [Instance0.Joystick]
-Left = 1114127
-HK_SwapScreens = 11
-HK_FastForward = -1
-HK_Mic = -1
+HK_GuitarGripYellow = -1
+HK_SlowMoToggle = -1
+HK_FastForwardToggle = -1
+HK_Lid = -1
+HK_FrameStep = -1
+HK_SaveState = 7
+Y = 3
 Down = 16842766
 B = 0
-X = 2
+HK_SolarSensorIncrease = -1
+HK_FrameLimitToggle = -1
 HK_SlowMo = -1
 HK_FullscreenToggle = -1
-HK_SolarSensorIncrease = -1
+Up = 17891341
+X = 2
+Right = 65552
+HK_Pause = -1
+Start = 9
+HK_LoadState = 6
+Select = 8
 A = 1
-R = 5
 L = 4
+R = 5
 HK_GuitarGripRed = -1
+HK_Mic = -1
+HK_FastForward = -1
+HK_SwapScreens = 11
+Left = 1114127
 HK_Reset = -1
 HK_PowerButton = -1
 HK_VolumeDown = -1
@@ -259,20 +257,6 @@ HK_SwapScreenEmphasis = -1
 HK_SolarSensorDecrease = -1
 HK_VolumeUp = -1
 HK_GuitarGripGreen = -1
-Y = 3
-HK_SaveState = 7
-HK_FrameStep = -1
-HK_Lid = -1
-HK_FastForwardToggle = -1
-HK_SlowMoToggle = -1
-HK_GuitarGripYellow = -1
-HK_FrameLimitToggle = -1
-Up = 17891341
-Right = 65552
-HK_Pause = -1
-Start = 9
-HK_LoadState = 6
-Select = 8
 
 [Instance0.DLDI]
 FolderSync = false
@@ -304,127 +288,18 @@ Port = 3333
 BreakOnStartup = false
 Port = 3334
 
-[Instance0.LAN]
-DirectMode = false
+[DSi]
+NANDPath = ""
 
-[Instance0.Mic]
+[DSi.Camera0]
+XFlip = false
 InputType = 0
+ImagePath = ""
+DeviceName = ""
 
-[Keyboard]
-B = -1
-Down = -1
-HK_Mic = -1
-HK_FastForward = -1
-HK_FrameLimitToggle = -1
-HK_SwapScreens = -1
-HK_SwapScreenEmphasis = -1
-HK_SolarSensorDecrease = -1
-A = -1
-HK_Reset = -1
-HK_PowerButton = -1
-HK_VolumeDown = -1
-HK_VolumeUp = -1
-X = -1
-Select = -1
-HK_Lid = -1
-HK_FrameStep = -1
-Y = -1
-L = -1
-HK_SolarSensorIncrease = -1
-Left = -1
-R = -1
-HK_Pause = -1
-HK_FullscreenToggle = -1
-Up = -1
-HK_SaveState = -1
-Right = -1
-HK_LoadState = -1
-Start = -1
-
-[Mouse]
-HideSeconds = 5
-Hide = false
-
-[Audio]
-BitDepth = 0
-DSiVolumeSync = false
-Volume = 256
-Interpolation = 0
-
-[Firmware]
-FavouriteColour = 0
-BirthdayDay = 1
-BirthdayMonth = 1
-Language = 1
-Username = "melonDS"
-OverrideSettings = false
-
-[Window0]
-ShowOSD = true
-ScreenAspectTop = 0
-IntegerScaling = false
-ScreenSizing = 4
-ScreenSwap = true
-ScreenLayout = 2
-ScreenGap = 0
-ScreenAspectBot = 0
-ScreenRotation = 0
-
-[Mic]
-WavPath = ""
-Device = ""
+[DSi.Camera1]
+XFlip = false
 InputType = 0
-
-[LAN]
-DirectMode = false
-
-[MP]
-RecvTimeout = 25
-AudioMode = 1
-
-[DS]
-FirmwarePath = "/storage/roms/bios/firmware.bin"
-BIOS7Path = "/storage/roms/bios/bios7.bin"
-BIOS9Path = "/storage/roms/bios/bios9.bin"
-
-[DS.Battery]
-LevelOkay = true
-
-[Joystick]
-B = 0
-Down = 16842766
-HK_Mic = -1
-HK_FastForward = -1
-HK_FrameLimitToggle = -1
-HK_SwapScreens = 11
-HK_SwapScreenEmphasis = -1
-HK_SolarSensorDecrease = -1
-A = 1
-HK_Reset = -1
-HK_PowerButton = -1
-HK_VolumeDown = -1
-HK_VolumeUp = -1
-X = 2
-Select = 8
-HK_Lid = -1
-HK_FrameStep = -1
-Y = 3
-L = 4
-HK_SolarSensorIncrease = -1
-Left = 1114127
-R = 5
-HK_Pause = -1
-HK_FullscreenToggle = -1
-Up = 17891341
-HK_SaveState = 7
-Right = 65552
-HK_LoadState = 6
-Start = 9
-
-[DLDI]
-FolderSync = false
-ReadOnly = false
-ImagePath = "dldi.bin"
-ImageSize = 0
-Enable = false
+ImagePath = ""
+DeviceName = ""
 
