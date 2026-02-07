@@ -15,15 +15,7 @@ PKG_LONGDESC="The Glibc package contains the main C library."
 # ROCKNIX: force bfd, no gold
 PKG_BUILD_FLAGS="+bfd -gold"
 
-# ROCKNIX: lowest kernel across supported devices (RK3588 runs a 6.1 BSP)
-case "${DEVICE}" in
-  RK3588)
-    OPT_ENABLE_KERNEL=6.1.0
-    ;;
-  *)
-    OPT_ENABLE_KERNEL=6.10.0
-    ;;
-esac
+OPT_ENABLE_KERNEL=6.10.0
 
 PKG_CONFIGURE_OPTS_TARGET="BASH_SHELL=/bin/sh \
                            ac_cv_path_PERL=no \
