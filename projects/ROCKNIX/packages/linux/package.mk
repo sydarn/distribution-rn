@@ -19,13 +19,7 @@ PKG_PATCH_DIRS="${LINUX} mainline ${DEVICE} default"
 [[ "${DEVICE}" == SM* ]] && PKG_DEPENDS_TARGET+=" mkbootimg:host"
 
 case ${DEVICE} in
-  RK3588)
-    PKG_VERSION="b8e62bed74766b6c8c423a767b35495e78b64caf"
-    PKG_URL="https://github.com/armbian/linux-rockchip/archive/${PKG_VERSION}.tar.gz"
-    PKG_GIT_CLONE_BRANCH="rk-6.1-rkr3"
-    PKG_PATCH_DIRS="${LINUX} ${DEVICE} default"
-    ;;
-  H700|SM8250|RK3399|RK3576|SM8650|SM8550|SM6115|S922X|RK3566)
+  H700|SM8250|RK3399|RK3576|SM8650|SM8550|SM6115|S922X|RK3566|RK3588)
     PKG_VERSION="7.0.1"
     PKG_URL="https://www.kernel.org/pub/linux/kernel/v${PKG_VERSION/.*/}.x/${PKG_NAME}-${PKG_VERSION}.tar.xz"
     PKG_PATCH_DIRS+=" 7.0"
