@@ -20,11 +20,9 @@ PKG_PATCH_DIRS="${LINUX} mainline ${DEVICE} default"
 
 case ${DEVICE} in
   RK3588)
-    PKG_VERSION="b8e62bed74766b6c8c423a767b35495e78b64caf"
-    PKG_SHA256="0e0fe5a2f108d525a044e190c3f23a4603cdbf8d54bc1cc488d6ee04b9fc5b3a"
-    PKG_URL="https://github.com/armbian/linux-rockchip/archive/${PKG_VERSION}.tar.gz"
-    PKG_GIT_CLONE_BRANCH="rk-6.1-rkr3"
-    PKG_PATCH_DIRS="${LINUX} ${DEVICE} default"
+    PKG_VERSION="7.3"
+    PKG_URL="https://www.kernel.org/pub/linux/kernel/v${PKG_VERSION/.*/}.x/${PKG_NAME}-${PKG_VERSION}.tar.xz"
+    PKG_PATCH_DIRS+=" 7.2.6"
     ;;
   SM6115|SM8550|RK3566|RK3576)
     PKG_VERSION="7.3.5"
@@ -84,7 +82,7 @@ for pkg in $(get_pkg_variable initramfs PKG_DEPENDS_TARGET); do
   ! listcontains "${PKG_DEPENDS_TARGET}" "${pkg}" && PKG_DEPENDS_TARGET+=" ${pkg}" || true
 done
 
-if [ "${DEVICE}" = "RK3326" -o "${DEVICE}" = "RK3566" ]; then
+if [[ "${DEVICE}" == RK* ]]; then
   PKG_DEPENDS_UNPACK+=" generic-dsi"
 elif [ "${DEVICE}" = "SM8250" -o "${DEVICE}" = "H700" -o "${DEVICE}" = "SM8650" -o "${DEVICE}" = "SM8750" -o "${DEVICE}" = "SDM845" ]; then
   PKG_DEPENDS_UNPACK+=" kernel-firmware"
@@ -112,7 +110,7 @@ post_patch() {
     cp -p ${PKG_INSTALL}/.image/Module.symvers ${PKG_BUILD}
   fi
 
-  if [ "${DEVICE}" = "RK3326" -o "${DEVICE}" = "RK3566" -o "${DEVICE}" = "RK3576" ]; then
+  if [[ "${DEVICE}" == RK* ]]; then
     cp -v $(get_pkg_directory generic-dsi)/sources/panel-generic-dsi.c ${PKG_BUILD}/drivers/gpu/drm/panel/
     echo "obj-y" += panel-generic-dsi.o >> ${PKG_BUILD}/drivers/gpu/drm/panel/Makefile
   fi
@@ -372,8 +370,6 @@ make_target() {
           PERF_BUILD_ARGS="ARCH=${TARGET_ARCH}"
           ;;
       esac
-
-      [[ "${DEVICE}" != "RK3588" ]] && export BUILD_BPF_SKEL=0
 
       WERROR=0 \
       NO_LIBPERL=1 \

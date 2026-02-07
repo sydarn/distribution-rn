@@ -15,11 +15,6 @@ case ${DEVICE} in
     PKG_SHA256="96aa6240e72b8ff4dc9943fc5b080e264a5fbf8b94fe8da10e1d6befa552b8fc"
     PKG_URL="https://github.com/rocknix/rockchip-wlroots/archive/${PKG_VERSION}.tar.gz"
     ;;
-  RK3588)
-    PKG_VERSION="0.17.4-rk"
-    PKG_SHA256="e9e1e14966c6272ca595307fa817fd0fefae96b13fe36c8084b3a7a55fed20d1"
-    PKG_URL="https://github.com/rocknix/rockchip-wlroots/archive/refs/tags/${PKG_VERSION}.tar.gz"
-    ;;
   *)
     PKG_VERSION="0.19.3"
     PKG_SHA256="a6ff89b64ea15e424d1b0db4a22145fccf5ec2ff2e7b8af0fa35e2ac8975986f"
