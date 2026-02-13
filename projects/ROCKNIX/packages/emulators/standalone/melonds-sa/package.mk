@@ -43,8 +43,7 @@ makeinstall_target() {
   cp -rf ${PKG_BUILD}/.${TARGET_NAME}/melonDS ${INSTALL}/usr/bin
 
   mkdir -p ${INSTALL}/usr/config/melonDS
-  cp -rf ${PKG_DIR}/config/${DEVICE}/* ${INSTALL}/usr/config/melonDS
-  cp -rf ${PKG_DIR}/config/melonDS.gptk ${INSTALL}/usr/config/melonDS
+  cp -rf ${PKG_DIR}/config ${INSTALL}/usr/config/melonDS
 
   cp -rf ${PKG_DIR}/scripts/* ${INSTALL}/usr/bin
   chmod +x ${INSTALL}/usr/bin/start_melonds.sh

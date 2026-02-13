@@ -1,27 +1,15 @@
 #!/bin/bash
-
 # SPDX-License-Identifier: GPL-2.0-or-later
 # Copyright (C) 2022-present JELOS (https://github.com/JustEnoughLinuxOS)
 
 . /etc/profile
 
-set_kill set "-9 melonDS"
-
-#load gptokeyb support files
-control-gen_init.sh
-source /storage/.config/gptokeyb/control.ini
-get_controls
-
 CONF_DIR="/storage/.config/melonDS"
-MELONDS_INI="melonDS.ini"
-SWAY_CONFIG="/storage/.config/sway/config"
+MELONDS_CONFIG="/storage/.config/melonDS/melonDS.toml"
 
 if [ ! -d "${CONF_DIR}" ]; then
 	cp -r "/usr/config/melonDS" "/storage/.config/"
-fi
-
-if [ ! -d "/storage/roms/savestates/nds" ]; then
-	mkdir -p "/storage/roms/savestates/nds"
+	/usr/bin/bash melonDS_gen_config.sh
 fi
 
 #Make sure melonDS gptk config exists
@@ -30,8 +18,12 @@ if [ ! -f "${CONF_DIR}/melonDS.gptk" ]; then
 fi
 
 #Make sure melonDS config exists
-if [ ! -f "${CONF_DIR}/${MELONDS_INI}" ]; then
-	cp -r "/usr/config/melonDS/melonDS.ini" "${CONF_DIR}/${MELONDS_INI}"
+if [ ! -f "${MELONDS_CONFIG}" ]; then
+	cp -r "/usr/config/melonDS/melonDS.toml" "MELONDS_CONFIG"
+fi
+
+if [ ! -d "/storage/roms/savestates/nds" ]; then
+	mkdir -p "/storage/roms/savestates/nds"
 fi
 
 #Emulation Station Features
@@ -170,13 +162,13 @@ case ${HW_DEVICE} in
     ;;
 esac
 
-@PANFROST@
-@HOTKEY@
-@LIBMALI@
+export MESA_GL_VERSION_OVERRIDE=3.3
 
-#Generate a new MelonDS.toml each run (temporary hack)
-rm -rf "${CONF_DIR}/melonDS.toml"
+if [[ -x "/usr/bin/gpudriver" ]] && [[ "$(/usr/bin/gpudriver)" = "libmali" ]]; then
+  sed -i '/ScreenUseGL=/c\ScreenUseGL=0' /storage/.config/melonDS/melonDS.ini
+fi
 
+set_kill set "-9 melonDS"
 #Run MelonDS emulator
 $GPTOKEYB "melonDS" -c "${CONF_DIR}/melonDS.gptk" &
 ${EMUPERF} /usr/bin/melonDS -f "${ROM}"

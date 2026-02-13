@@ -12,7 +12,7 @@ PKG_TOOLCHAIN="cmake-make"
 
 PKG_CMAKE_OPTS_TARGET=" -DENABLE_OPENGL=ON"
 
-if [ "${OPENGL_SUPPORT}" = "yes" ]; then
+if [ "${OPENGL_SUPPORT}" = "yes" ] && [ ! "${PREFER_GLES}" = "yes" ]; then
   PKG_DEPENDS_TARGET+=" ${OPENGL}"
   PKG_CMAKE_OPTS_TARGET+=" -DDEFAULT_OPENGL_PROFILE=OpenGL"
 elif [ "${OPENGLES_SUPPORT}" = "yes" ]; then
