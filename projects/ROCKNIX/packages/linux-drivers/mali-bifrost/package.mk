@@ -17,6 +17,7 @@ case ${DEVICE} in
   *)
   PKG_VERSION="f86d3dd4923b5d5de11ae7eaf7a6c4fee136528e"
   PKG_URL="http://github.com/ROCKNIX/mali_kbase/archive/${PKG_VERSION}.tar.gz"
+  PKG_PATCH_DIRS+=" RK3566"
   ;;
 esac
 

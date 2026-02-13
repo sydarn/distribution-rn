@@ -1,0 +1,293 @@
+From 7378705f5699fe8fdbcb112ab722a2e8c4e3e464 Mon Sep 17 00:00:00 2001
+From: sydarn <sydarn@proton.me>
+Date: Sun, 2 Nov 2025 09:57:10 +0100
+Subject: [PATCH] Arm upstream Bifrost BX304L01B-SW-99002-r54p2-01eac0
+
+---
+ .../kernel/Documentation/ioctl-categories.rst | 80 +++++++++++++++++++
+ product/kernel/config/cflags.bzl              |  2 +-
+ product/kernel/drivers/gpu/arm/midgard/Kbuild |  2 +-
+ .../arm/midgard/mali_kbase_debug_mem_view.c   | 65 ++++++++-------
+ .../gpu/arm/midgard/mali_kbase_mem_migrate.c  | 28 ++++---
+ 5 files changed, 138 insertions(+), 39 deletions(-)
+ create mode 100644 product/kernel/Documentation/ioctl-categories.rst
+
+diff --git a/product/kernel/Documentation/ioctl-categories.rst b/product/kernel/Documentation/ioctl-categories.rst
+new file mode 100644
+index 0000000..f719551
+--- /dev/null
++++ b/product/kernel/Documentation/ioctl-categories.rst
+@@ -0,0 +1,80 @@
++.. SPDX-License-Identifier: GPL-2.0 WITH Linux-syscall-note
++
++========================
++Kbase IOCTLs categorised
++========================
++
++**Copyright:** \(C) 2025 ARM Limited. All rights reserved.
++
++..
++    This program is free software and is provided to you under the terms of the
++    GNU General Public License version 2 as published by the Free Software
++    Foundation, and any use by you of this program is subject to the terms
++    of such GNU license.
++
++    This program is distributed in the hope that it will be useful,
++    but WITHOUT ANY WARRANTY; without even the implied warranty of
++    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
++    GNU General Public License for more details.
++
++    You should have received a copy of the GNU General Public License
++    along with this program; if not, you can access it online at
++    http://www.gnu.org/licenses/gpl-2.0.html.
++
++Restricted
++==========
++
++- KBASE_IOCTL_CINSTR_GWT_DUMP
++- KBASE_IOCTL_CINSTR_GWT_START
++- KBASE_IOCTL_CINSTR_GWT_STOP
++- KBASE_IOCTL_HWCNT_READER_SETUP
++- KBASE_IOCTL_HWCNT_SET
++- KBASE_IOCTL_MEM_PROFILE_ADD
++- KBASE_IOCTL_SET_LIMITED_CORE_COUNT
++- KBASE_IOCTL_TLSTREAM_STATS
++- KBASE_IOCTL_TLSTREAM_TEST
++- KBASE_IOCTL_VERSION_CHECK_RESERVED
++
++
++Instrumentation
++===============
++
++- KBASE_IOCTL_KINSTR_PRFCNT_CMD
++- KBASE_IOCTL_KINSTR_PRFCNT_ENUM_INFO
++- KBASE_IOCTL_KINSTR_PRFCNT_GET_SAMPLE
++- KBASE_IOCTL_KINSTR_PRFCNT_PUT_SAMPLE
++- KBASE_IOCTL_KINSTR_PRFCNT_SETUP
++- KBASE_IOCTL_TLSTREAM_ACQUIRE
++- KBASE_IOCTL_TLSTREAM_FLUSH
++
++Unprivileged
++============
++
++- KBASE_IOCTL_CONTEXT_PRIORITY_CHECK
++- KBASE_IOCTL_DISJOINT_QUERY
++- KBASE_IOCTL_FENCE_VALIDATE
++- KBASE_IOCTL_GET_CONTEXT_ID
++- KBASE_IOCTL_GET_CPU_GPU_TIMEINFO
++- KBASE_IOCTL_GET_DDK_VERSION
++- KBASE_IOCTL_GET_GPUPROPS
++- KBASE_IOCTL_JOB_SUBMIT
++- KBASE_IOCTL_KINSTR_JM_FD
++- KBASE_IOCTL_MEM_ALIAS
++- KBASE_IOCTL_MEM_ALLOC
++- KBASE_IOCTL_MEM_COMMIT
++- KBASE_IOCTL_MEM_EXEC_INIT
++- KBASE_IOCTL_MEM_FIND_CPU_OFFSET
++- KBASE_IOCTL_MEM_FIND_GPU_START_AND_OFFSET
++- KBASE_IOCTL_MEM_FLAGS_CHANGE
++- KBASE_IOCTL_MEM_FREE
++- KBASE_IOCTL_MEM_IMPORT
++- KBASE_IOCTL_MEM_JIT_INIT
++- KBASE_IOCTL_MEM_QUERY
++- KBASE_IOCTL_MEM_SYNC
++- KBASE_IOCTL_POST_TERM
++- KBASE_IOCTL_SET_FLAGS
++- KBASE_IOCTL_SOFT_EVENT_UPDATE
++- KBASE_IOCTL_STICKY_RESOURCE_MAP
++- KBASE_IOCTL_STICKY_RESOURCE_UNMAP
++- KBASE_IOCTL_STREAM_CREATE
++- KBASE_IOCTL_VERSION_CHECK
+diff --git a/product/kernel/config/cflags.bzl b/product/kernel/config/cflags.bzl
+index 0cfb4ce..aa0ca84 100644
+--- a/product/kernel/config/cflags.bzl
++++ b/product/kernel/config/cflags.bzl
+@@ -62,7 +62,7 @@ COPTS_KBASE = [
+     "-DMALI_COVERAGE=0",
+     "-DMALI_JIT_PRESSURE_LIMIT_BASE=1",
+     "-DMALI_USE_CSF=0",
+-    "-DMALI_RELEASE_NAME=\"r54p1-12eac0\"",
++    "-DMALI_RELEASE_NAME=\"r54p2-01eac0\"",
+ ] + select({
+     "//config:mali_debug": ["-DMALI_UNIT_TEST=1"],
+     "//conditions:default": ["-DMALI_UNIT_TEST=0"],
+diff --git a/product/kernel/drivers/gpu/arm/midgard/Kbuild b/product/kernel/drivers/gpu/arm/midgard/Kbuild
+index 9114df5..76b038b 100644
+--- a/product/kernel/drivers/gpu/arm/midgard/Kbuild
++++ b/product/kernel/drivers/gpu/arm/midgard/Kbuild
+@@ -82,7 +82,7 @@ endif
+ #
+ 
+ # Driver version string which is returned to userspace via an ioctl
+-MALI_RELEASE_NAME ?= '"r54p1-12eac0"'
++MALI_RELEASE_NAME ?= '"r54p2-01eac0"'
+ # Set up defaults if not defined by build system
+ ifeq ($(CONFIG_MALI_DEBUG), y)
+     MALI_UNIT_TEST = 1
+diff --git a/product/kernel/drivers/gpu/arm/midgard/mali_kbase_debug_mem_view.c b/product/kernel/drivers/gpu/arm/midgard/mali_kbase_debug_mem_view.c
+index 48469cd..1ba31c7 100644
+--- a/product/kernel/drivers/gpu/arm/midgard/mali_kbase_debug_mem_view.c
++++ b/product/kernel/drivers/gpu/arm/midgard/mali_kbase_debug_mem_view.c
+@@ -1,7 +1,7 @@
+ // SPDX-License-Identifier: GPL-2.0 WITH Linux-syscall-note
+ /*
+  *
+- * (C) COPYRIGHT 2013-2024 ARM Limited. All rights reserved.
++ * (C) COPYRIGHT 2013-2025 ARM Limited. All rights reserved.
+  *
+  * This program is free software and is provided to you under the terms of the
+  * GNU General Public License version 2 as published by the Free Software
+@@ -60,6 +60,7 @@ struct debug_mem_mapping {
+ struct debug_mem_data {
+ 	struct list_head mapping_list;
+ 	struct kbase_context *kctx;
++	struct file *filp;
+ 	unsigned int column_width;
+ };
+ 
+@@ -236,13 +237,7 @@ static int debug_mem_open(struct inode *i, struct file *file)
+ 	struct debug_mem_data *mem_data;
+ 	int ret;
+ 	enum kbase_memory_zone idx;
+-
+-#if (KERNEL_VERSION(6, 7, 0) > LINUX_VERSION_CODE)
+-	if (get_file_rcu(kctx->filp) == 0)
+-#else
+-	if (get_file_rcu(&kctx->filp) == 0)
+-#endif
+-		return -ENOENT;
++	struct file *filp;
+ 
+ 	/* Check if file was opened in write mode. GPU memory contents
+ 	 * are returned only when the file is not opened in write mode.
+@@ -252,6 +247,20 @@ static int debug_mem_open(struct inode *i, struct file *file)
+ 		return 0;
+ 	}
+ 
++#if (KERNEL_VERSION(6, 7, 0) > LINUX_VERSION_CODE)
++	rcu_read_lock();
++	filp = rcu_dereference_raw(kctx->filp);
++	if (!filp || !get_file_rcu(filp)) {
++		rcu_read_unlock();
++		return -ENOENT;
++	}
++	rcu_read_unlock();
++#else
++	filp = get_file_active(&kctx->filp);
++	if (!filp)
++		return -ENOENT;
++#endif
++
+ 	ret = seq_open(file, &ops);
+ 	if (ret)
+ 		goto open_fail;
+@@ -263,6 +272,7 @@ static int debug_mem_open(struct inode *i, struct file *file)
+ 	}
+ 
+ 	mem_data->kctx = kctx;
++	mem_data->filp = filp;
+ 
+ 	INIT_LIST_HEAD(&mem_data->mapping_list);
+ 
+@@ -301,38 +311,37 @@ static int debug_mem_open(struct inode *i, struct file *file)
+ 	}
+ 	seq_release(i, file);
+ open_fail:
+-	fput(kctx->filp);
++	fput(filp);
+ 
+ 	return ret;
+ }
+ 
+ static int debug_mem_release(struct inode *inode, struct file *file)
+ {
+-	struct kbase_context *const kctx = inode->i_private;
++	struct seq_file *sfile;
++	struct debug_mem_data *mem_data;
++	struct debug_mem_mapping *mapping;
+ 
+-	/* If the file wasn't opened in write mode, then release the
+-	 * memory allocated to show the GPU memory contents.
+-	 */
+-	if (!(file->f_mode & FMODE_WRITE)) {
+-		struct seq_file *sfile = file->private_data;
+-		struct debug_mem_data *mem_data = sfile->private;
+-		struct debug_mem_mapping *mapping;
++	if ((file->f_mode & FMODE_WRITE))
++		return 0;
+ 
+-		seq_release(inode, file);
++	sfile = file->private_data;
++	mem_data = sfile->private;
+ 
+-		while (!list_empty(&mem_data->mapping_list)) {
+-			mapping = list_first_entry(&mem_data->mapping_list,
+-						   struct debug_mem_mapping, node);
+-			kbase_mem_phy_alloc_put(mapping->alloc);
+-			list_del(&mapping->node);
+-			kfree(mapping);
+-		}
++	/* The file wasn't opened in write mode, so release the
++	 * memory allocated to show the GPU memory contents.
++	 */
++	seq_release(inode, file);
+ 
+-		kfree(mem_data);
++	while (!list_empty(&mem_data->mapping_list)) {
++		mapping = list_first_entry(&mem_data->mapping_list, struct debug_mem_mapping, node);
++		kbase_mem_phy_alloc_put(mapping->alloc);
++		list_del(&mapping->node);
++		kfree(mapping);
+ 	}
+ 
+-	fput(kctx->filp);
+-
++	fput(mem_data->filp);
++	kfree(mem_data);
+ 	return 0;
+ }
+ 
+diff --git a/product/kernel/drivers/gpu/arm/midgard/mali_kbase_mem_migrate.c b/product/kernel/drivers/gpu/arm/midgard/mali_kbase_mem_migrate.c
+index bb69648..5ea7a4e 100644
+--- a/product/kernel/drivers/gpu/arm/midgard/mali_kbase_mem_migrate.c
++++ b/product/kernel/drivers/gpu/arm/midgard/mali_kbase_mem_migrate.c
+@@ -720,20 +720,30 @@ void kbase_mem_migrate_init(struct kbase_device *kbdev)
+ {
+ 	struct kbase_mem_migrate *mem_migrate = &kbdev->mem_migrate;
+ 
+-	/* Page migration support compiled in, either explicitly or
++	/* Page migration should only be enabled if compaction is
++	 * enabled in the kernel otherwise pages cannot be marked as
++	 * movable.
++	 *
++	 * Page migration support compiled in, either explicitly or
+ 	 * by default, so the default behaviour is to follow the choice
+ 	 * of large pages if not selected at insmod. Check insmod parameter
+ 	 * integer for a negative value to see if insmod parameter was
+ 	 * passed in at all (it will override the default negative value).
+ 	 */
+-	if (kbase_page_migration_enabled < 0) {
+-		if (kbase_is_large_pages_enabled())
+-			static_branch_inc(&page_migration_static_key);
+-	} else {
+-		dev_info(kbdev->dev, "Page migration support explicitly %s at insmod.",
+-			 kbase_page_migration_enabled ? "enabled" : "disabled");
+-		if (kbase_page_migration_enabled)
+-			static_branch_inc(&page_migration_static_key);
++	if (IS_ENABLED(CONFIG_COMPACTION)) {
++		if (kbase_page_migration_enabled < 0) {
++			if (kbase_is_large_pages_enabled())
++				static_branch_inc(&page_migration_static_key);
++		} else {
++			dev_info(kbdev->dev, "Page migration support explicitly %s at insmod.",
++				 kbase_page_migration_enabled ? "enabled" : "disabled");
++			if (kbase_page_migration_enabled)
++				static_branch_inc(&page_migration_static_key);
++		}
++	} else if (kbase_page_migration_enabled) {
++		dev_warn(
++			kbdev->dev,
++			"No CONFIG_COMPACTION. 'page migration support enable' ignored.");
+ 	}
+ 
+ 	spin_lock_init(&mem_migrate->free_pages_lock);
