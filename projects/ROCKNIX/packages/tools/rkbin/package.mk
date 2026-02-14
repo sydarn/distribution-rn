@@ -3,20 +3,12 @@
 # Copyright (C) 2024-present ROCKNIX (https://github.com/ROCKNIX)
 
 PKG_NAME="rkbin"
+PKG_VERSION="74213af1e952c4683d2e35952507133b61394862"
 PKG_LICENSE="nonfree"
 PKG_SITE="https://github.com/rockchip-linux/rkbin"
 PKG_LONGDESC="rkbin: Rockchip Firmware and Tool Binaries"
 PKG_TOOLCHAIN="manual"
-
-case "${DEVICE}" in
-  RK3588)
-    # Pin rk3588 here until it hits mainline
-    PKG_VERSION="7c35e21a8529b3758d1f051d1a5dc62aae934b2b"
-    ;;
-  *)
-    PKG_VERSION="74213af1e952c4683d2e35952507133b61394862"
-    ;;
-esac
+PKG_VERSION="74213af1e952c4683d2e35952507133b61394862"
 
 PKG_URL="https://github.com/rockchip-linux/rkbin/archive/${PKG_VERSION}.tar.gz"
 

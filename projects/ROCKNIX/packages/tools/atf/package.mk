@@ -20,6 +20,9 @@ case ${DEVICE} in
     # BL31 embeds the stubs; rebuild when they change
     PKG_NEED_UNPACK+=" $(get_pkg_directory h700-suspend-stub) ${SYSROOT_PREFIX}/usr/share/h700-suspend-stub"
   ;;
+  RK3588)
+    PKG_VERSION="2.13.0"
+  ;;
   *)
     PKG_VERSION="2.10.0"
     PKG_SHA256="6b1d5e89c311c5e7eaeb062713953311464c0378ab3e4ebc7ede72a746964bb1"
