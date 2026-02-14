@@ -60,6 +60,9 @@
   # Windowmanager to use (weston / swaywm-env / no)
     WINDOWMANAGER="swaywm-env"
   
+  # Pipewire audio support (yes / no)
+    PIPEWIRE_SUPPORT="yes"
+
   # Additional drivers to install:
   # for a list of additional drivers see packages/linux-drivers
   # Space separated list is supported,
@@ -72,10 +75,13 @@
     FIRMWARE="ap6256-firmware ap6611s-firmware g610-mali-csffw iwlwifi-firmware ibt-firmware"
 
   # Additional packages to install
-    ADDITIONAL_PACKAGES="ap6611s"
+    ADDITIONAL_PACKAGES=""
+
+  # Nope
+    ROCKNIX_JOYPAD="no"
 
   # Debug tty path
-    DEBUG_TTY="/dev/ttyFIQ0"
+    DEBUG_TTY="/dev/ttyS2"
 
   # Some devices have internal storage.
     INSTALLER_SUPPORT="yes"

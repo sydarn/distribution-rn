@@ -272,8 +272,6 @@ make_target() {
           ;;
       esac
 
-      [[ "${DEVICE}" != "RK3588" ]] && export BUILD_BPF_SKEL=0
-
       WERROR=0 \
       NO_LIBPERL=1 \
       NO_LIBPYTHON=1 \
