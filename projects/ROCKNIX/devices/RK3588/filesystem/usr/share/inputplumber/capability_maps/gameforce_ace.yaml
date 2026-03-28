@@ -99,6 +99,7 @@ mapping:
           event_type: ABS
           event_code: ABS_HAT2Y
           value_type: trigger
+          inverted: true
     target_event:
       gamepad:
         trigger:
@@ -110,6 +111,7 @@ mapping:
           event_type: ABS
           event_code: ABS_HAT2X
           value_type: trigger
+          inverted: true
     target_event:
       gamepad:
         trigger:

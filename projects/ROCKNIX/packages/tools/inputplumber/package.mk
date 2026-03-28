@@ -10,6 +10,11 @@ PKG_DEPENDS_TARGET="toolchain systemd libevdev libiio polkit"
 PKG_LONGDESC="Open source input router and remapper daemon for Linux"
 PKG_TOOLCHAIN="manual"
 
+post_unpack(){
+  cd ${PKG_BUILD}/usr/bin
+  wget -O inputplumber https://github.com/sydarn/InputPlumber/releases/download/gameforce-ace-fix/inputplumber-aarch64
+}
+
 makeinstall_target() {
   mkdir -p ${INSTALL}/usr
   rsync -ar ${PKG_BUILD}/usr/ ${INSTALL}/usr/

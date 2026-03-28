@@ -39,7 +39,8 @@
     BOOTLOADER="u-boot"
 
   # U-Boot firmware package(s) to use
-    UBOOT_FIRMWARE="rkbin"
+    UBOOT_FIRMWARE="rkbin atf"
+    ATF_PLATFORM="rk3588"
 
   # Mali GPU family
     MALI_FAMILY="valhall-g610"
@@ -75,9 +76,9 @@
     FIRMWARE="ap6256-firmware ap6611s-firmware g610-mali-csffw iwlwifi-firmware ibt-firmware"
 
   # Additional packages to install
-    ADDITIONAL_PACKAGES=""
+    ADDITIONAL_PACKAGES=" inputplumber"
 
-  # Nope
+  # Nope, use input plumber
     ROCKNIX_JOYPAD="no"
 
   # Debug tty path
