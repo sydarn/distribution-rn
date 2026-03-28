@@ -12,20 +12,15 @@ PKG_LONGDESC="ARM Trusted Firmware is a reference implementation of secure world
 PKG_TOOLCHAIN="manual"
 PKG_PATCH_DIRS+="${DEVICE}"
 
-case ${DEVICE} in
-  H700)
-    PKG_VERSION="2.12.0"
-  ;;
-  RK3588)
-    PKG_VERSION="2.13.0"
-  ;;
-  *)
-    PKG_VERSION="2.10.0"
-    PKG_SHA256="696b8e53923aac4474532da7dd681f0bd044b329732facd65aeabea3e61adca9"
-    ;;
-esac
+PKG_VERSION="8dae0862c502e08568a61a1050091fa9357f1240"
+PKG_URL="https://review.trustedfirmware.org/plugins/gitiles/TF-A/trusted-firmware-a/+archive/${PKG_VERSION}.tar.gz"
 
-PKG_URL="https://github.com/ARM-software/arm-trusted-firmware/archive/v${PKG_VERSION}.tar.gz"
+unpack() {
+  # For some reason or build system can't unpack this appropraitely so it manually
+  mkdir -p "${PKG_BUILD}"
+  cd "${PKG_BUILD}"
+  tar -xzf "${SOURCES}/${PKG_NAME}/${PKG_NAME}-${PKG_VERSION}.tar.gz"
+}
 
 
 [ -n "${KERNEL_TOOLCHAIN}" ] && PKG_DEPENDS_TARGET+=" gcc-${KERNEL_TOOLCHAIN}:host"
