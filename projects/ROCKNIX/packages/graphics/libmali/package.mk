@@ -23,8 +23,8 @@ case "${DEVICE}" in
     DRIVER_VERSION="r51p0"
     PKG_DEPENDS_TARGET+=" vulkan-wsi-layer vulkan-tools"
   ;;
-  RK3588)
-    DRIVER_VERSION="g13p0"
+  *) # RK3326 and RK3566
+    DRIVER_VERSION="g24p0"
   ;;
 esac
 
@@ -96,10 +96,6 @@ post_makeinstall_target() {
   done
   patchelf --add-needed libmali.so.1 "${INSTALL}"/usr/lib*/libmali-hook.so.1
 
-  # x11 lib needed for some applications on the RK3588
-  if [ ${DEVICE} = "RK3588" ] && [ ${TARGET_ARCH} = "aarch64" ]; then
-      curl -Lo ${INSTALL}/usr/lib/libmali-${MALI_FAMILY}-${DRIVER_VERSION}-x11-gbm.so ${PKG_SITE}/raw/master/lib/aarch64-linux-gnu/libmali-${MALI_FAMILY}-${DRIVER_VERSION}-x11-gbm.so
-  fi
   # S922X - mali vulkan libs need moving
   if [[ "${DEVICE}" =~ S922X|RK3326|RK3566|RK3576 ]] && [ "${ARCH}" = "aarch64" ]; then
     mv "${INSTALL}"/usr/lib/mali/libMaliVulkan.* "${INSTALL}"/usr/lib/
