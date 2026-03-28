@@ -12,24 +12,15 @@ PKG_LONGDESC="ARM Trusted Firmware is a reference implementation of secure world
 PKG_TOOLCHAIN="manual"
 PKG_PATCH_DIRS+="${DEVICE}"
 
-case ${DEVICE} in
-  H700)
-    PKG_VERSION="2.12.0"
-    PKG_SHA256="d95aaf292792c98035910d7e6c64ebfb297c897fef510415db1612f6d39f9223"
-    PKG_DEPENDS_TARGET+=" h700-suspend-stub"
-    # BL31 embeds the stubs; rebuild when they change
-    PKG_NEED_UNPACK+=" $(get_pkg_directory h700-suspend-stub) ${SYSROOT_PREFIX}/usr/share/h700-suspend-stub"
-  ;;
-  RK3588)
-    PKG_VERSION="2.13.0"
-  ;;
-  *)
-    PKG_VERSION="2.10.0"
-    PKG_SHA256="6b1d5e89c311c5e7eaeb062713953311464c0378ab3e4ebc7ede72a746964bb1"
-    ;;
-esac
+PKG_VERSION="8dae0862c502e08568a61a1050091fa9357f1240"
+PKG_URL="https://review.trustedfirmware.org/plugins/gitiles/TF-A/trusted-firmware-a/+archive/${PKG_VERSION}.tar.gz"
 
-PKG_URL="https://github.com/TrustedFirmware-A/trusted-firmware-a/archive/v${PKG_VERSION}.tar.gz"
+unpack() {
+  # For some reason or build system can't unpack this appropraitely so it manually
+  mkdir -p "${PKG_BUILD}"
+  cd "${PKG_BUILD}"
+  tar -xzf "${SOURCES}/${PKG_NAME}/${PKG_NAME}-${PKG_VERSION}.tar.gz"
+}
 
 
 [ -n "${KERNEL_TOOLCHAIN}" ] && PKG_DEPENDS_TARGET+=" gcc-${KERNEL_TOOLCHAIN}:host"
