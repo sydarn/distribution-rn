@@ -49,15 +49,6 @@ post_makeinstall_target() {
   safe_remove ${INSTALL}/etc
   safe_remove ${INSTALL}/usr/share/wayland-sessions
 
-  case ${DEVICE} in
-<<<<<<< HEAD
-    RK3588)
-=======
-    SDM845)
->>>>>>> c1c180e866 (rk3588/Ace: mainline port)
-      sed -i '/allow_tearing/d' ${INSTALL}/usr/lib/autostart/common/111-sway-init
-      ;;
-  esac
 }
 
 post_install() {
