@@ -12,7 +12,7 @@ PKG_LONGDESC="ARM Trusted Firmware is a reference implementation of secure world
 PKG_TOOLCHAIN="manual"
 PKG_PATCH_DIRS+="${DEVICE}"
 
-PKG_VERSION="v2.15.0"
+PKG_VERSION="eb60949df191608e1a5a707fc175fa74c39c245c"
 PKG_URL="${PKG_SITE}/archive/${PKG_VERSION}.tar.gz"
 
 #unpack() {
